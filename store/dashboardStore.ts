@@ -31,6 +31,14 @@ export interface Plan {
   subTopics: SubTopic[];
 }
 
+export interface HealthData {
+  water: number;
+  stretch: number;
+  reading: number;
+  academic: number;
+  english: number;
+}
+
 export type TimetableGrid = Record<string, Record<string, string>>;
 
 interface DashboardState {
@@ -111,6 +119,12 @@ interface DashboardState {
   updateTimetableCell: (day: string, time: string, subject: string) => void;
   isTimetableOpen: boolean;
   setIsTimetableOpen: (isOpen: boolean) => void;
+
+  // Health Rings
+  healthData: Record<string, HealthData>;
+  updateHealth: (dateKey: string, type: keyof HealthData, value: number) => void;
+  isHealthModalOpen: boolean;
+  toggleHealthModal: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +180,7 @@ export const useDashboardStore = create<DashboardState>()(
       isHidden: false,
 
       setWallpaper: (url) => set({ wallpaper: url }),
-      cycleBackground: () => set((state) => ({ bgIndex: (state.bgIndex + 1) % 3 })),
+      cycleBackground: () => set((state) => ({ bgIndex: state.bgIndex + 1 })),
       setCurrentBgType: (type) => set({ currentBgType: type }),
       isVideoMuted: true,
       setIsVideoMuted: (muted) => set({ isVideoMuted: muted }),
@@ -312,6 +326,37 @@ export const useDashboardStore = create<DashboardState>()(
       })),
       isTimetableOpen: false,
       setIsTimetableOpen: (isOpen) => set({ isTimetableOpen: isOpen }),
+
+      // Health Rings
+      healthData: {},
+      isHealthModalOpen: false,
+      toggleHealthModal: () => set((state) => ({ isHealthModalOpen: !state.isHealthModalOpen })),
+      updateHealth: (dateKey, type, value) => set((state) => {
+        const newData = { ...state.healthData };
+        
+        // Initialize day if it doesn't exist
+        if (!newData[dateKey]) {
+          newData[dateKey] = { water: 0, stretch: 0, reading: 0, academic: 0, english: 0 };
+        }
+        
+        newData[dateKey] = {
+          ...newData[dateKey],
+          [type]: Math.max(0, newData[dateKey][type] + value)
+        };
+
+        // Purge logic: Keep only the last 7 days of data
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const purgeThreshold = sevenDaysAgo.toISOString().split('T')[0];
+
+        Object.keys(newData).forEach(key => {
+          if (key < purgeThreshold) {
+            delete newData[key];
+          }
+        });
+
+        return { healthData: newData };
+      }),
     }),
     {
       name: 'dashboard-storage',
@@ -319,7 +364,7 @@ export const useDashboardStore = create<DashboardState>()(
       partialize: (state) => Object.fromEntries(
         Object.entries(state).filter(([key]) => ![
           'isQuotePopupOpen', 'isTaskManagerOpen', 'isStatsOpen', 'timerTrigger', 
-          'isNotesOpen', 'isPlansOpen', 'isTimetableOpen'
+          'isNotesOpen', 'isPlansOpen', 'isTimetableOpen', 'isHealthModalOpen'
         ].includes(key))
       ),
     }

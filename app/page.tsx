@@ -11,6 +11,8 @@ import PlansManager from "@/components/PlansManager";
 import MiniCalendar from "@/components/MiniCalendar";
 import Countdown from "@/components/Countdown";
 import Timetable from "@/components/Timetable";
+import HealthRings from "@/components/HealthRings";
+import HealthModal from "@/components/HealthModal";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, CalendarDays } from "lucide-react";
 import { useDashboardStore } from "@/store/dashboardStore";
@@ -83,6 +85,9 @@ export default function Dashboard() {
 
       {/* Stats Modal */}
       {!isHidden && <StatsModal />}
+
+      {/* Health Modal */}
+      <HealthModal />
 
       {/* Quick Notes */}
       <NotesManager />
@@ -163,6 +168,11 @@ export default function Dashboard() {
       {/* Bottom Center: Dock */}
       <div className="absolute bottom-18 left-1/2 -translate-x-1/2 z-50">
         <Dock onOpenNotes={() => console.log('Open Notes clicked')} />
+      </div>
+
+      {/* Bottom Left: Health Rings */}
+      <div className="absolute bottom-12 left-12 z-50">
+        <HealthRings />
       </div>
 
       {/* Bottom Right: TaskManager & Timer */}
