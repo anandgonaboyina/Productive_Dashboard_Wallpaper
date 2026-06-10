@@ -30,9 +30,10 @@ export default function VideoBackground() {
   const currentBg = backgrounds[safeIndex];
 
   useEffect(() => {
-    // Update global store so other components know if it's image or video
+    // Update global store so other components know if it's image or video and its src
     if (currentBg) {
       useDashboardStore.getState().setCurrentBgType(currentBg.type as any);
+      useDashboardStore.getState().setCurrentBgSrc(currentBg.src);
     }
   }, [currentBg]);
 

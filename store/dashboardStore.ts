@@ -122,9 +122,17 @@ interface DashboardState {
 
   // Health Rings
   healthData: Record<string, HealthData>;
+  fetchHealthData: () => Promise<void>;
   updateHealth: (dateKey: string, type: keyof HealthData, value: number) => void;
   isHealthModalOpen: boolean;
   toggleHealthModal: () => void;
+
+  clockOffsets: Record<string, { x: number, y: number }>;
+  updateClockOffset: (bgSrc: string, x: number, y: number) => void;
+  resetClockOffset: (bgSrc: string) => void;
+
+  currentBgSrc: string | null;
+  setCurrentBgSrc: (src: string | null) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -180,8 +188,10 @@ export const useDashboardStore = create<DashboardState>()(
       isHidden: false,
 
       setWallpaper: (url) => set({ wallpaper: url }),
-      cycleBackground: () => set((state) => ({ bgIndex: state.bgIndex + 1 })),
+      cycleBackground: () => set((state) => ({ bgIndex: state.bgIndex + 1, isVideoPlaying: true })),
       setCurrentBgType: (type) => set({ currentBgType: type }),
+      currentBgSrc: null,
+      setCurrentBgSrc: (src) => set({ currentBgSrc: src }),
       isVideoMuted: true,
       setIsVideoMuted: (muted) => set({ isVideoMuted: muted }),
       isVideoPlaying: true,
@@ -329,33 +339,51 @@ export const useDashboardStore = create<DashboardState>()(
 
       // Health Rings
       healthData: {},
+      fetchHealthData: async () => {
+        try {
+          const res = await fetch('/api/health');
+          if (res.ok) {
+            const json = await res.json();
+            if (json.data) {
+              set({ healthData: json.data });
+            }
+          }
+        } catch (err) {
+          console.error('Failed to fetch health data', err);
+        }
+      },
       isHealthModalOpen: false,
       toggleHealthModal: () => set((state) => ({ isHealthModalOpen: !state.isHealthModalOpen })),
-      updateHealth: (dateKey, type, value) => set((state) => {
-        const newData = { ...state.healthData };
-        
-        // Initialize day if it doesn't exist
-        if (!newData[dateKey]) {
-          newData[dateKey] = { water: 0, stretch: 0, reading: 0, academic: 0, english: 0 };
-        }
-        
-        newData[dateKey] = {
-          ...newData[dateKey],
-          [type]: Math.max(0, newData[dateKey][type] + value)
-        };
-
-        // Purge logic: Keep only the last 7 days of data
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const purgeThreshold = sevenDaysAgo.toISOString().split('T')[0];
-
-        Object.keys(newData).forEach(key => {
-          if (key < purgeThreshold) {
-            delete newData[key];
+      updateHealth: (dateKey, metric, incrementValue) => {
+        // Optimistic UI update
+        set((state) => {
+          const newData = { ...state.healthData };
+          if (!newData[dateKey]) {
+            newData[dateKey] = { water: 0, stretch: 0, reading: 0, academic: 0, english: 0 };
           }
+          newData[dateKey] = {
+            ...newData[dateKey],
+            [metric]: Math.max(0, newData[dateKey][metric] + incrementValue)
+          };
+          return { healthData: newData };
         });
 
-        return { healthData: newData };
+        // Background API sync
+        fetch('/api/health', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dateKey, metric, incrementValue })
+        }).catch(err => console.error("Failed to sync health data", err));
+      },
+
+      clockOffsets: {},
+      updateClockOffset: (bgSrc, x, y) => set((state) => ({
+        clockOffsets: { ...state.clockOffsets, [bgSrc]: { x, y } }
+      })),
+      resetClockOffset: (bgSrc) => set((state) => {
+        const newOffsets = { ...state.clockOffsets };
+        delete newOffsets[bgSrc];
+        return { clockOffsets: newOffsets };
       }),
     }),
     {
@@ -364,7 +392,8 @@ export const useDashboardStore = create<DashboardState>()(
       partialize: (state) => Object.fromEntries(
         Object.entries(state).filter(([key]) => ![
           'isQuotePopupOpen', 'isTaskManagerOpen', 'isStatsOpen', 'timerTrigger', 
-          'isNotesOpen', 'isPlansOpen', 'isTimetableOpen', 'isHealthModalOpen'
+          'isNotesOpen', 'isPlansOpen', 'isTimetableOpen', 'isHealthModalOpen', 'healthData',
+          'isVideoMuted', 'isVideoPlaying'
         ].includes(key))
       ),
     }

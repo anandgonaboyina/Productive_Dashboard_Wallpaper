@@ -2,6 +2,7 @@
 import { useDashboardStore } from '@/store/dashboardStore';
 import { Droplet, Activity, BookOpen, ActivitySquare, GraduationCap, MessageCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { getLocalDateString } from '@/utils/date';
 
 const TARGETS = {
     water: 8, // glasses
@@ -12,12 +13,16 @@ const TARGETS = {
 };
 
 export default function HealthRings() {
-    const { healthData, updateHealth, toggleHealthModal } = useDashboardStore();
+    const { healthData, updateHealth, toggleHealthModal, fetchHealthData } = useDashboardStore();
     const [todayKey, setTodayKey] = useState('');
 
     useEffect(() => {
-        setTodayKey(new Date().toISOString().split('T')[0]);
-    }, []);
+        const updateDate = () => setTodayKey(getLocalDateString());
+        updateDate();
+        fetchHealthData();
+        const interval = setInterval(updateDate, 60000); // Check every minute for midnight reset
+        return () => clearInterval(interval);
+    }, [fetchHealthData]);
 
     if (!todayKey) return null;
 

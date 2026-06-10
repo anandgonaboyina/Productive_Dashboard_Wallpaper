@@ -13,6 +13,7 @@ import Countdown from "@/components/Countdown";
 import Timetable from "@/components/Timetable";
 import HealthRings from "@/components/HealthRings";
 import HealthModal from "@/components/HealthModal";
+import DraggableClock from "@/components/DraggableClock";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, CalendarDays } from "lucide-react";
 import { useDashboardStore } from "@/store/dashboardStore";
@@ -140,7 +141,9 @@ export default function Dashboard() {
 
       {/* BigClock */}
       <div className={`absolute z-0 transition-all duration-500 ${currentBgType === 'image' ? 'inset-0 flex items-start mt-40 justify-center' : 'top-40 left-10'}`}>
-        <BigClock />
+        <DraggableClock>
+          <BigClock />
+        </DraggableClock>
       </div>
 
       {/* Bottom Center (Above Dock): Timetable */}

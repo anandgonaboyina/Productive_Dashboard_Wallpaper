@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { Flame } from 'lucide-react';
+import { getLocalDateString } from '@/utils/date';
 
 export default function BigClock() {
   const [time, setTime] = useState<Date | null>(null);
@@ -43,7 +44,7 @@ export default function BigClock() {
   const seconds = time.getSeconds().toString().padStart(2, '0');
   const ampm = rawHours >= 12 ? 'PM' : 'AM';
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const todayMins = history[today] || 0;
   const focusHours = Math.floor(todayMins / 60);
   const focusMins = todayMins % 60;

@@ -2,6 +2,7 @@
 import { useDashboardStore } from '@/store/dashboardStore';
 import { X, Droplet, Activity, BookOpen, GraduationCap, MessageCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { getLocalDateString } from '@/utils/date';
 
 const TARGETS = {
   water: 8, // glasses
@@ -28,7 +29,7 @@ export default function HealthModal() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      dates.push(d.toISOString().split('T')[0]);
+      dates.push(getLocalDateString(d));
     }
     setHistoryDates(dates.reverse()); // Most recent first
   }, [isHealthModalOpen]);
@@ -53,7 +54,7 @@ export default function HealthModal() {
         <div className="flex flex-col gap-4">
           {historyDates.map(date => {
             const data = healthData[date] || { water: 0, stretch: 0, reading: 0, academic: 0, english: 0 };
-            const isToday = date === new Date().toISOString().split('T')[0];
+            const isToday = date === getLocalDateString();
 
             return (
               <div key={date} className={`flex flex-col gap-2 p-3 rounded-xl border ${isToday ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/5'}`}>

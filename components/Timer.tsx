@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Square, VolumeX, Check, ListTodo, ChevronUp, ChevronDown, BarChart2, StickyNote, Map } from 'lucide-react';
 import { useDashboardStore } from '@/store/dashboardStore';
 import { fetchQuote } from '@/utils/quoteEngine';
+import { getLocalDateString } from '@/utils/date';
 
 export default function Timer() {
   const {
@@ -51,6 +52,7 @@ export default function Timer() {
 
         if (remaining <= 0) {
           // Timer finished!
+          clearInterval(interval);
           setLocalTimeLeft(0);
           setTimerEndAt(null);
           setTimerPausedLeft(null);
@@ -58,7 +60,7 @@ export default function Timer() {
 
           // Log to history
           if (timerInitialMins && timerInitialMins > 0) {
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString();
             addMins(today, timerInitialMins);
             setTimerInitialMins(null); 
           }
@@ -85,7 +87,7 @@ export default function Timer() {
     setIsAlarmPlaying(true);
     setTimeout(() => {
       useDashboardStore.getState().setIsAlarmPlaying(false);
-    }, 10000);
+    }, 25000);
   };
 
   const stopAlarm = () => {

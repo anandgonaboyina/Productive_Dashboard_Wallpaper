@@ -12,3 +12,13 @@ model DashboardStorage {
   data      Json
   updatedAt DateTime @updatedAt
 }
+
+model HealthRecord {
+  id        Int      @id @default(autoincrement())
+  date      String   @unique // 'YYYY-MM-DD'
+  water     Int      @default(0)
+  stretch   Int      @default(0)
+  reading   Int      @default(0)
+  academic  Int      @default(0)
+  english   Int      @default(0)
+}
