@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: null });
     }
     
-    return NextResponse.json({ data: record.data });
+    return NextResponse.json({ data: JSON.parse(record.data) });
   } catch (error) {
     console.error('Error reading store from DB:', error);
     return NextResponse.json({ error: 'Failed to read store' }, { status: 500 });
@@ -29,11 +29,11 @@ export async function POST(request: Request) {
     await prisma.dashboardStorage.upsert({
       where: { id: profileId },
       update: {
-        data: body.data || {},
+        data: JSON.stringify(body.data || {}),
       },
       create: {
         id: profileId,
-        data: body.data || {},
+        data: JSON.stringify(body.data || {}),
       },
     });
     

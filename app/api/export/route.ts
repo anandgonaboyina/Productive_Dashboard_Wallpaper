@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No data found' }, { status: 404 });
     }
     
-    const jsonString = JSON.stringify(record.data, null, 2);
+    const jsonString = JSON.stringify(JSON.parse(record.data), null, 2);
     
     return new NextResponse(jsonString, {
       status: 200,

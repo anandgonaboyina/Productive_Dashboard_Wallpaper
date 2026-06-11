@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -15,7 +15,7 @@ model Profile {
 
 model DashboardStorage {
   id        Int      @id @default(1)
-  data      Json
+  data      String
   updatedAt DateTime @updatedAt
 }
 

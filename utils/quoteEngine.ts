@@ -5,10 +5,12 @@ export interface Quote {
   author: string;
 }
 
+let recentIndices: number[] = [];
+
 export async function fetchQuote(): Promise<Quote> {
   try {
-    // Attempt to fetch from Quotable API (often unstable, but good when it works)
-    const res = await fetch('https://api.quotable.io/quotes/random?tags=inspirational|motivational|wisdom', { 
+    // Attempt to fetch from DummyJSON API (highly reliable and free)
+    const res = await fetch('https://dummyjson.com/quotes/random', { 
       cache: 'no-store',
       // Short timeout so we don't hang the UI if it's down
       signal: AbortSignal.timeout(3000) 
@@ -16,16 +18,31 @@ export async function fetchQuote(): Promise<Quote> {
     
     if (res.ok) {
       const data = await res.json();
-      if (data && data.length > 0) {
-        return { text: data[0].content, author: data[0].author };
+      if (data && data.quote) {
+        return { text: data.quote, author: data.author };
       }
     }
   } catch (err) {
-    console.warn('Quote API failed, falling back to massive local JSON dataset');
+    console.warn('Quote API failed, falling back to local JSON dataset');
   }
 
-  // Fallback to our robust local JSON (~1600 quotes)
-  const randomIndex = Math.floor(Math.random() * fallbackQuotes.length);
+  // Fallback to our robust local JSON
+  let randomIndex = Math.floor(Math.random() * fallbackQuotes.length);
+  
+  // Prevent repetitions for the last 20 quotes (or half the array, whichever is smaller)
+  const maxRecent = Math.min(20, Math.floor(fallbackQuotes.length / 2));
+  
+  let attempts = 0;
+  while (recentIndices.includes(randomIndex) && attempts < 10) {
+    randomIndex = Math.floor(Math.random() * fallbackQuotes.length);
+    attempts++;
+  }
+  
+  recentIndices.push(randomIndex);
+  if (recentIndices.length > maxRecent) {
+    recentIndices.shift(); // Remove oldest
+  }
+
   // type.fit format is { text: string, author: string }
   const q = fallbackQuotes[randomIndex] as { text: string; author: string | null };
   

@@ -52,6 +52,8 @@ if %errorlevel% neq 0 (
 echo.
 echo [3/5] Configuring local SQLite database (Zero Setup Required!)...
 echo Don't worry, SQLite is incredibly safe and stores all your data securely in a local file.
+echo Creating .env file automatically...
+echo DATABASE_URL="file:./dev.db" > .env
 call npx prisma generate
 call npx prisma db push
 if %errorlevel% neq 0 (

@@ -788,40 +788,46 @@ export default function SettingsModal() {
                     </div>
                     
                     {/* Clear Old Data */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5 gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-white/5 rounded-xl">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5 gap-5">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="p-3 bg-white/5 rounded-xl shrink-0">
                           <Trash2 size={24} className="text-yellow-400" />
                         </div>
-                        <div>
-                          <h4 className="font-medium text-lg">Clear Old Data</h4>
-                          <p className="text-sm text-white/50">Delete health and history logs older than the selected timeframe.</p>
+                        <div className="flex flex-col gap-2">
+                          <div>
+                            <h4 className="font-medium text-lg leading-tight">Clear Old Data</h4>
+                            <p className="text-sm text-white/50 mt-1">Delete health and history logs older than the selected timeframe.</p>
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {[15, 30, 60, 90, 120].map(days => (
+                              <button
+                                key={days}
+                                onClick={() => setDeleteDays(days)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                                  deleteDays === days 
+                                    ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50 scale-105' 
+                                    : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20 hover:text-white'
+                                }`}
+                              >
+                                {days} Days
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <select
-                          value={deleteDays}
-                          onChange={(e) => setDeleteDays(Number(e.target.value))}
-                          className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-yellow-500"
-                        >
-                          <option value={15}>Older than 15 Days</option>
-                          <option value={30}>Older than 30 Days</option>
-                          <option value={60}>Older than 60 Days</option>
-                          <option value={90}>Older than 90 Days</option>
-                          <option value={120}>Older than 120 Days</option>
-                        </select>
-                        <button
-                          onClick={async () => {
-                            if (confirm(`Are you sure you want to delete all history logs older than ${deleteDays} days? This action cannot be undone.`)) {
-                              await clearOldData(deleteDays);
-                              alert(`Logs older than ${deleteDays} days cleared successfully.`);
-                            }
-                          }}
-                          className="px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 rounded-xl text-sm font-medium transition-colors border border-yellow-500/30 flex items-center gap-2"
-                        >
-                          <Trash2 size={16} /> Delete Old Logs
-                        </button>
-                      </div>
+
+                      <button
+                        onClick={async () => {
+                          if (confirm(`Are you sure you want to delete all history logs older than ${deleteDays} days? This action cannot be undone.`)) {
+                            await clearOldData(deleteDays);
+                            alert(`Logs older than ${deleteDays} days cleared successfully.`);
+                          }
+                        }}
+                        className="w-full md:w-auto px-5 py-3 bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 rounded-xl text-sm font-bold transition-all border border-yellow-500/30 flex items-center justify-center gap-2 whitespace-nowrap shrink-0 hover:scale-105"
+                      >
+                        <Trash2 size={18} /> Delete Logs
+                      </button>
                     </div>
 
                     {/* Danger Zone: Delete All Data */}
