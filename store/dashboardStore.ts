@@ -66,8 +66,14 @@ interface DashboardState {
   toggleTaskManager: () => void;
   isStatsOpen: boolean;
   toggleStats: () => void;
-  timerTrigger: { mins: number; ts: number } | null;
-  triggerTimer: (mins: number) => void;
+  timerTrigger: { mins: number; ts: number; taskId?: string; taskTitle?: string } | null;
+  triggerTimer: (mins: number, taskId?: string, taskTitle?: string) => void;
+
+  // Active Task for Timer
+  activeTaskId: string | null;
+  activeTaskTitle: string | null;
+  setActiveTask: (id: string | null, title: string | null) => void;
+  updateTaskDuration: (id: string, decreaseMins: number) => void;
 
   // Global Timer State
   timerEndAt: number | null;
@@ -231,7 +237,14 @@ export const useDashboardStore = create<DashboardState>()(
       isStatsOpen: false,
       toggleStats: () => set((state) => ({ isStatsOpen: !state.isStatsOpen })),
       timerTrigger: null,
-      triggerTimer: (mins) => set({ timerTrigger: { mins, ts: Date.now() } }),
+      triggerTimer: (mins, taskId, taskTitle) => set({ timerTrigger: { mins, ts: Date.now(), taskId, taskTitle } }),
+
+      activeTaskId: null,
+      activeTaskTitle: null,
+      setActiveTask: (id, title) => set({ activeTaskId: id, activeTaskTitle: title }),
+      updateTaskDuration: (id, decreaseMins) => set((state) => ({
+        tasks: state.tasks.map(t => t.id === id ? { ...t, duration: Math.max(0, t.duration - decreaseMins) } : t)
+      })),
 
       timerEndAt: null,
       timerPausedLeft: null,

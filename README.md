@@ -34,3 +34,20 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+
+
+Notes for auto start the wallpaper on startup
+Now Task Scheduler Setup
+Task 1 — Server (30 sec delay)
+FieldValueNameWallpaper ServerProgramwscript.exeArguments"D:\productivedashborad\start-server.vbs"TriggerAt log onDelay30 seconds
+Task 2 — Lively (60 sec delay)
+FieldValueNameWallpaper LivelyProgramwscript.exeArguments"D:\productivedashborad\start-lively.vbs"TriggerAt log onDelay60 seconds
+
+Disable Lively from Normal Startup
+Ctrl + Shift + Esc
+→ Startup tab
+→ Find Lively Wallpaper
+→ Right click → Disable
+This prevents Lively from launching too early before the server is ready.

@@ -140,7 +140,7 @@ export default function Dashboard() {
       {/* Dashboard components will be positioned absolutely within this container */}
 
       {/* BigClock */}
-      <div className={`absolute z-0 transition-all duration-500 ${currentBgType === 'image' ? 'inset-0 flex items-start mt-40 justify-center' : 'top-40 left-10'}`}>
+      <div className={`absolute z-[999] transition-all duration-500 ${currentBgType === 'image' ? 'inset-0 flex items-start mt-40 justify-center' : 'top-40 left-10'}`}>
         <DraggableClock>
           <BigClock />
         </DraggableClock>
@@ -179,7 +179,7 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom Right: TaskManager & Timer */}
-      <div className="absolute bottom-12 right-12 z-50 flex flex-col items-end gap-4">
+      <div className="absolute bottom-12 right-12 z-50 flex flex-col items-end gap-2">
         {!isHidden && <TaskManager />}
         <Timer />
       </div>

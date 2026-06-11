@@ -42,8 +42,8 @@ export default function Dock({ onOpenNotes }: DockProps) {
                             <stop offset="100%" stopColor="#F5A623" />
                         </linearGradient>
                     </defs>
-                    <path d="M12 2C12 7.52 16.48 12 22 12C16.48 12 12 16.48 12 22C12 16.48 7.52 12 2 12C7.52 12 12 7.52 12 2Z" fill="url(#gemini-grad)"/>
-                    <path d="M18.5 16C18.5 17.38 19.62 18.5 21 18.5C19.62 18.5 18.5 19.62 18.5 21C18.5 19.62 17.38 18.5 16 18.5C17.38 18.5 18.5 17.38 18.5 16Z" fill="url(#gemini-grad)"/>
+                    <path d="M12 2C12 7.52 16.48 12 22 12C16.48 12 12 16.48 12 22C12 16.48 7.52 12 2 12C7.52 12 12 7.52 12 2Z" fill="url(#gemini-grad)" />
+                    <path d="M18.5 16C18.5 17.38 19.62 18.5 21 18.5C19.62 18.5 18.5 19.62 18.5 21C18.5 19.62 17.38 18.5 16 18.5C17.38 18.5 18.5 17.38 18.5 16Z" fill="url(#gemini-grad)" />
                 </svg>
             </button>
 
@@ -84,7 +84,7 @@ export default function Dock({ onOpenNotes }: DockProps) {
             >
                 <svg className="group-hover:scale-150 transition-transform duration-300 w-8 h-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 2L3 21H7.5L9.5 16H14.5L16.5 21H21L12 2ZM10.5 13L12 9L13.5 13H10.5Z" fill="currentColor" />
-                    <circle cx="12" cy="7" r="2" fill="#F5A623"/>
+                    <circle cx="12" cy="7" r="2" fill="#F5A623" />
                 </svg>
             </button>
         </div>

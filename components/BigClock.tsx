@@ -52,6 +52,14 @@ export default function BigClock() {
   // Format "Xh Ym" or just "Ym" if no hours
   const focusText = focusHours > 0 ? `${focusHours}h ${focusMins}m` : `${focusMins}m`;
 
+  // Time left today
+  const eod = new Date(time);
+  eod.setHours(23, 59, 59, 999);
+  const msLeft = eod.getTime() - time.getTime();
+  const hrsLeft = Math.floor(msLeft / (1000 * 60 * 60));
+  const minsLeft = Math.floor((msLeft % (1000 * 60 * 60)) / (1000 * 60));
+  const timeLeftText = hrsLeft > 0 ? `${hrsLeft}h left` : `${minsLeft}m left`;
+
   return (
     <div className={`flex flex-col justify-center pointer-events-none drop-shadow-2xl transition-all duration-500 ${currentBgType === 'image' ? 'items-center' : 'items-start'} ${currentBgType === 'image' && isTimetableOpen ? '-translate-y-8' : ''}`}>
       <div
@@ -72,7 +80,9 @@ export default function BigClock() {
         className={`flex items-center gap-2 text-white/60 font-medium tracking-wide bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-xl cursor-pointer pointer-events-auto hover:bg-black/40 transition-all duration-500 ${currentBgType === 'image' && isTimetableOpen ? 'text-sm mt-0 scale-75 origin-top' : 'text-lg mt-1'}`}
       >
         <Flame size={20} className="text-orange-400" />
-        Today: <span className="text-white/90 font-bold">{focusText}</span>
+        <span>Today: <span className="text-white/90 font-bold">{focusText}</span></span>
+        <span className="text-white/30 mx-1">|</span>
+        <span className="text-white/80">{timeLeftText}</span>
       </div>
     </div>
   );

@@ -40,7 +40,7 @@ export default function VideoBackground() {
   useEffect(() => {
     const syncVideoState = () => {
       if (currentBg && currentBg.type === 'video' && videoRef.current) {
-        
+
         if (isVideoPlaying) {
           // Play muted first to bypass browser autoplay policies
           videoRef.current.muted = true;
@@ -97,7 +97,7 @@ export default function VideoBackground() {
             playsInline
           />
           {/* Controls */}
-          <div className="absolute top-6 left-20 z-50 flex gap-4">
+          <div className="absolute top-6 left-20 z-50 flex gap-1">
             {/* Play/Pause Toggle Button */}
             <button
               onClick={() => setIsVideoPlaying(!isVideoPlaying)}

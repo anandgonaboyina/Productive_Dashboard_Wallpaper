@@ -60,14 +60,21 @@ export default function TaskManager() {
                                     <button onClick={() => handleToggleTask(task.id)} className="shrink-0 text-white/60 hover:text-white transition-colors">
                                         {task.completed ? <CheckCircle size={20} className="text-green-400" /> : <Circle size={20} />}
                                     </button>
-                                    <span className={`truncate text-sm ${task.completed ? 'line-through' : ''}`}>
-                                        {task.title}
-                                    </span>
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                        <span className={`truncate text-sm ${task.completed ? 'line-through' : ''}`}>
+                                            {task.title}
+                                        </span>
+                                        {task.duration > 0 && !task.completed && (
+                                            <span className="text-xs font-medium text-white/90 bg-blue-500/40 px-2.5 py-0.5 rounded-full w-fit mt-1 border border-white/20">
+                                                {task.duration >= 60 ? task.duration / 60 + "h" + ":" + task.duration % 60 + "m left" : task.duration + "m left"}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
-                                        onClick={() => triggerTimer(task.duration)}
+                                        onClick={() => triggerTimer(task.duration, task.id, task.title)}
                                         className="p-1.5 bg-blue-500/20 text-blue-300 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
                                         title={`Start ${task.duration}m timer`}
                                     >

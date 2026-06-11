@@ -16,10 +16,14 @@ export default function Timer() {
     timerInitialMins, setTimerInitialMins,
     isAlarmPlaying, setIsAlarmPlaying,
     addMins,
-    showQuotePopup, isHidden
+    showQuotePopup, isHidden,
+    activeTaskId, activeTaskTitle, setActiveTask, updateTaskDuration
   } = useDashboardStore();
 
   const [customMins, setCustomMins] = useState('');
+  
+  // Ref to track saved chunks for active task timer
+  const lastSavedChunksRef = useRef(0);
   
   // Local state for UI updates (does not spam DB)
   const [localTimeLeft, setLocalTimeLeft] = useState(0);
@@ -41,6 +45,33 @@ export default function Timer() {
     }
   }, [timerEndAt, timerPausedLeft]);
 
+  // Helper to save partial time for an active task timer before clearing/overwriting it
+  const saveAndClearActiveTaskTimer = () => {
+    if (activeTaskId && timerInitialMins) {
+      let currentRemaining = localTimeLeft; 
+      if (timerEndAt) {
+        currentRemaining = Math.max(0, Math.floor((timerEndAt - Date.now()) / 1000));
+      } else if (timerPausedLeft !== null) {
+        currentRemaining = timerPausedLeft;
+      }
+
+      const elapsedSeconds = (timerInitialMins * 60) - currentRemaining;
+      if (elapsedSeconds > 0) {
+        const finalUnsavedSeconds = elapsedSeconds - (lastSavedChunksRef.current * 600);
+        const finalUnsavedMins = Math.round(finalUnsavedSeconds / 60);
+        
+        if (finalUnsavedMins > 0) {
+          const today = getLocalDateString();
+          addMins(today, finalUnsavedMins);
+          updateTaskDuration(activeTaskId, finalUnsavedMins);
+        }
+      }
+    }
+    
+    setActiveTask(null, null);
+    lastSavedChunksRef.current = 0;
+  };
+
   // Main tick interval
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -49,6 +80,21 @@ export default function Timer() {
       interval = setInterval(() => {
         const now = Date.now();
         const remaining = Math.floor((timerEndAt - now) / 1000);
+
+        if (timerInitialMins && activeTaskId) {
+           const elapsedSeconds = (timerInitialMins * 60) - remaining;
+           if (elapsedSeconds >= 0) {
+             const chunks = Math.floor(elapsedSeconds / 600); // 10 minutes = 600 seconds
+             if (chunks > lastSavedChunksRef.current) {
+                const diff = chunks - lastSavedChunksRef.current;
+                const minsToSave = diff * 10;
+                const today = getLocalDateString();
+                addMins(today, minsToSave);
+                updateTaskDuration(activeTaskId, minsToSave);
+                lastSavedChunksRef.current = chunks;
+             }
+           }
+        }
 
         if (remaining <= 0) {
           // Timer finished!
@@ -61,7 +107,18 @@ export default function Timer() {
           // Log to history
           if (timerInitialMins && timerInitialMins > 0) {
             const today = getLocalDateString();
-            addMins(today, timerInitialMins);
+            if (activeTaskId) {
+               const elapsedSeconds = timerInitialMins * 60;
+               const finalUnsavedSeconds = elapsedSeconds - (lastSavedChunksRef.current * 600);
+               const finalUnsavedMins = Math.round(finalUnsavedSeconds / 60);
+               if (finalUnsavedMins > 0) {
+                 addMins(today, finalUnsavedMins);
+                 updateTaskDuration(activeTaskId, finalUnsavedMins);
+               }
+               setActiveTask(null, null);
+            } else {
+               addMins(today, timerInitialMins);
+            }
             setTimerInitialMins(null); 
           }
 
@@ -74,12 +131,20 @@ export default function Timer() {
     }
 
     return () => clearInterval(interval);
-  }, [timerEndAt, timerInitialMins, addMins, setTimerEndAt, setTimerPausedLeft, setTimerInitialMins, showQuotePopup]);
+  }, [timerEndAt, timerInitialMins, addMins, setTimerEndAt, setTimerPausedLeft, setTimerInitialMins, showQuotePopup, activeTaskId, updateTaskDuration, setActiveTask]);
 
   // Listen for timer triggers from other components
   useEffect(() => {
     if (timerTrigger) {
-      startTimer(timerTrigger.mins * 60);
+      // If we are triggering a new timer, save partial time of any currently running task timer
+      saveAndClearActiveTaskTimer();
+
+      if (timerTrigger.taskId) {
+        setActiveTask(timerTrigger.taskId, timerTrigger.taskTitle || null);
+        startTimer(timerTrigger.mins * 60, true);
+      } else {
+        startTimer(timerTrigger.mins * 60, false);
+      }
     }
   }, [timerTrigger]);
 
@@ -94,10 +159,14 @@ export default function Timer() {
     setIsAlarmPlaying(false);
   };
 
-  const startTimer = (seconds: number) => {
+  const startTimer = (seconds: number, isTask: boolean = false) => {
+    if (!isTask) {
+      saveAndClearActiveTaskTimer();
+    }
     setTimerInitialMins(Math.round(seconds / 60));
     setTimerPausedLeft(null);
     setTimerEndAt(Date.now() + seconds * 1000);
+    lastSavedChunksRef.current = 0;
     stopAlarm();
   };
 
@@ -114,6 +183,7 @@ export default function Timer() {
   };
 
   const resetTimer = () => {
+    saveAndClearActiveTaskTimer();
     setTimerEndAt(null);
     setTimerPausedLeft(null);
     stopAlarm();
@@ -149,7 +219,14 @@ export default function Timer() {
   const saveEditor = () => {
     const h = parseInt(editHours) || 0;
     const m = parseInt(editMins) || 0;
-    setTimerPausedLeft(h * 3600 + m * 60);
+    const newRemaining = h * 3600 + m * 60;
+    
+    if (timerInitialMins) {
+      const oldElapsed = (timerInitialMins * 60) - localTimeLeft;
+      setTimerInitialMins(Math.max(0, Math.round((oldElapsed + newRemaining) / 60)));
+    }
+
+    setTimerPausedLeft(newRemaining);
     setIsEditingTime(false);
   };
 
@@ -167,7 +244,13 @@ export default function Timer() {
     <div className="relative pointer-events-auto">
       <div className="w-64 rounded-3xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-4 text-white flex flex-col gap-3">
         {/* Timer Display / Editor */}
-        <div className="text-center min-h-[80px] flex items-center justify-center">
+        <div className="text-center min-h-[80px] flex flex-col items-center justify-center relative">
+          {activeTaskTitle && (
+            <div className="w-full max-w-[200px] mb-3 text-xs font-medium text-blue-200 flex items-center justify-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+              <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+              <span className="truncate">{activeTaskTitle}</span>
+            </div>
+          )}
           {isEditingTime ? (
             <div className="flex items-center justify-center gap-2">
               <div className="flex flex-col items-center">
