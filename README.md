@@ -28,7 +28,7 @@ To make this your actual interactive desktop background:
 1. Download and install **Lively Wallpaper** (Free on the Microsoft Store).
 2. Open Lively Wallpaper.
 3. Click the **'+' (Add Wallpaper)** button at the top right.
-4. Click **'Enter URL'** and type: `http://localhost:3000`
+4. Click **'Enter URL'** and type: `http://localhost:4321`
 5. Click the arrow to save and apply. 
 
 Boom! Your desktop is now a fully interactive productivity operating system.

@@ -102,12 +102,12 @@ echo    Double-click the 'start_hidden.vbs' file in this folder.
 echo.
 echo 2. Check if it is working by opening your normal web
 echo    browser (Chrome/Edge) and going to:
-echo    http://localhost:3000
+echo    http://localhost:4321
 echo.
 echo [ LIVELY WALLPAPER SETUP ]
 echo 1. Open Lively Wallpaper.
 echo 2. Click 'Add Wallpaper' (+) at the top right.
-echo 3. Choose 'Enter URL' and type: http://localhost:3000
+echo 3. Choose 'Enter URL' and type: http://localhost:4321
 echo 4. Click the arrow to save and apply.
 echo.
 echo [ TROUBLESHOOTING TIP ]
