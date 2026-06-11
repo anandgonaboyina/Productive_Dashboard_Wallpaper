@@ -48,8 +48,6 @@ interface DashboardState {
   setCurrentBgType: (type: 'image' | 'video' | null) => void;
   isVideoMuted: boolean;
   setIsVideoMuted: (muted: boolean) => void;
-  videoVolume: number;
-  setVideoVolume: (volume: number) => void;
   isVideoPlaying: boolean;
   setIsVideoPlaying: (playing: boolean) => void;
   history: Record<string, number>;
@@ -249,8 +247,6 @@ export const useDashboardStore = create<DashboardState>()(
       setCurrentBgSrc: (src) => set({ currentBgSrc: src }),
       isVideoMuted: true,
       setIsVideoMuted: (muted) => set({ isVideoMuted: muted }),
-      videoVolume: 0.5,
-      setVideoVolume: (volume) => set({ videoVolume: volume }),
       isVideoPlaying: true,
       setIsVideoPlaying: (playing) => set({ isVideoPlaying: playing }),
 

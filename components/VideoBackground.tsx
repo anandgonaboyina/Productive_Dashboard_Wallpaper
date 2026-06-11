@@ -11,7 +11,6 @@ export default function VideoBackground() {
   ]);
   const isVideoMuted = useDashboardStore((state) => state.isVideoMuted);
   const setIsVideoMuted = useDashboardStore((state) => state.setIsVideoMuted);
-  const videoVolume = useDashboardStore((state) => state.videoVolume);
   const isVideoPlaying = useDashboardStore((state) => state.isVideoPlaying);
   const setIsVideoPlaying = useDashboardStore((state) => state.setIsVideoPlaying);
   const showVideoControls = useDashboardStore((state) => state.showVideoControls);
@@ -79,10 +78,9 @@ export default function VideoBackground() {
           // Play muted first to bypass browser autoplay policies
           videoRef.current.muted = true;
           videoRef.current.play().then(() => {
-            // Once playing successfully, restore the user's desired mute state and volume
+            // Once playing successfully, restore the user's desired mute state
             if (videoRef.current) {
               videoRef.current.muted = isVideoMuted;
-              videoRef.current.volume = videoVolume;
             }
           }).catch(e => {
             console.log("Video play failed", e);
@@ -90,7 +88,6 @@ export default function VideoBackground() {
         } else {
           videoRef.current.pause();
           videoRef.current.muted = isVideoMuted;
-          videoRef.current.volume = videoVolume;
         }
       }
     };
@@ -106,7 +103,7 @@ export default function VideoBackground() {
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [currentBg?.src, currentBg?.type, isVideoPlaying, isVideoMuted, videoVolume, setIsVideoPlaying]);
+  }, [currentBg?.src, currentBg?.type, isVideoPlaying, isVideoMuted, setIsVideoPlaying]);
 
   if (!currentBg) return null;
 

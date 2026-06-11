@@ -11,7 +11,7 @@ const DEFAULT_WALLPAPERS = [
 ];
 
 export default function SettingsModal() {
-  const { isSettingsOpen, toggleSettings, is24HourClock, toggle24HourClock, currentBgSrc, hiddenWallpapers, toggleWallpaperVisibility, showHealth, showQuote, showTimer, showCountdowns, showVideoControls, showClock, showTasks, showCalendar, showTodayWork, toggleVisibility, isSlideshowEnabled, setIsSlideshowEnabled, slideshowIntervalMins, setSlideshowIntervalMins, videoVolume, setVideoVolume, lockedWidgets, toggleWidgetLock, resetAllOffsets } = useDashboardStore();
+  const { isSettingsOpen, toggleSettings, is24HourClock, toggle24HourClock, currentBgSrc, hiddenWallpapers, toggleWallpaperVisibility, showHealth, showQuote, showTimer, showCountdowns, showVideoControls, showClock, showTasks, showCalendar, showTodayWork, toggleVisibility, isSlideshowEnabled, setIsSlideshowEnabled, slideshowIntervalMins, setSlideshowIntervalMins, lockedWidgets, toggleWidgetLock, resetAllOffsets } = useDashboardStore();
   const [activeTab, setActiveTab] = useState<'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about'>('wallpapers');
   const [coffeeAmount, setCoffeeAmount] = useState<number>(20);
   const upiId = 'gonaboyinaanandkumar@ybl';
@@ -435,25 +435,6 @@ export default function SettingsModal() {
                     </div>
                   </div>
 
-                  {/* Video Wallpaper Volume */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5 gap-4">
-                    <div>
-                      <h4 className="font-medium text-lg">Video Volume</h4>
-                      <p className="text-sm text-white/50">Set the default volume level for video wallpapers.</p>
-                    </div>
-                    <div className="flex items-center gap-4 w-full sm:w-1/3">
-                      <span className="text-sm font-medium text-white/70 w-8">{Math.round(videoVolume * 100)}%</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={videoVolume}
-                        onChange={(e) => setVideoVolume(parseFloat(e.target.value))}
-                        className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full transition-all hover:[&::-webkit-slider-thumb]:scale-125"
-                      />
-                    </div>
-                  </div>
 
                   {/* Default Wallpapers */}
                   <div>

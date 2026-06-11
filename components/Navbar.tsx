@@ -49,7 +49,7 @@ export default function Dock({ onOpenNotes }: DockProps) {
 
             {/* WhatsApp */}
             <button
-                onClick={() => window.open('whatsapp://', '_self')}
+                onClick={() => window.open('whatsapp://', '_blank')}
                 className="group relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-b from-[#25D366]/90 to-[#128c7e] text-white shadow-lg transition-all duration-300 hover:scale-[1.2] hover:-translate-y-2 hover:shadow-2xl"
                 title="WhatsApp"
             >
@@ -58,7 +58,7 @@ export default function Dock({ onOpenNotes }: DockProps) {
 
             {/* Telegram */}
             <button
-                onClick={() => window.open('tg://', '_self')}
+                onClick={() => window.open('tg://', '_blank')}
                 className="group relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-b from-[#0088cc]/90 to-[#006699] text-white shadow-lg transition-all duration-300 hover:scale-[1.2] hover:-translate-y-2 hover:shadow-2xl"
                 title="Telegram"
             >
@@ -67,7 +67,7 @@ export default function Dock({ onOpenNotes }: DockProps) {
 
             {/* VS Code */}
             <button
-                onClick={() => window.open('vscode://', '_self')}
+                onClick={() => window.open('vscode://', '_blank')}
                 className="group relative flex items-center justify-center w-14 h-14 rounded-2xl bg-[#0066b8] text-white shadow-lg transition-all duration-300 hover:scale-[1.2] hover:-translate-y-2 hover:shadow-2xl"
                 title="VS Code"
             >
@@ -78,7 +78,7 @@ export default function Dock({ onOpenNotes }: DockProps) {
 
             {/* Antigravity */}
             <button
-                onClick={() => window.open('antigravity://', '_self')}
+                onClick={() => window.open('antigravity://', '_blank')}
                 className="group relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-b from-gray-800 to-black text-white shadow-lg transition-all duration-300 hover:scale-[1.2] hover:-translate-y-2 hover:shadow-2xl border border-white/10"
                 title="Antigravity"
             >
