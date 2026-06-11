@@ -1,53 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 Productive Dashboard & Dynamic Wallpaper
 
-## Getting Started
+Welcome to the **Productive Dashboard**! This is a highly customizable, beautiful, and interactive dashboard designed to be used natively as your Windows desktop wallpaper (via Lively Wallpaper) or directly in your web browser. 
 
-First, run the development server:
+It tracks your health habits, manages your tasks and notes, provides focus timers, and serves up powerful motivational quotes—all layered over dynamic video or image backgrounds!
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ⚡ 1-Click Automated Setup (Less than 5 mins!)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You DO NOT need to be a programmer to install this. We've built an automated setup wizard that does all the heavy lifting.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Extract the ZIP file** you downloaded to a permanent location on your PC (like `Documents/ProductiveDashboard`).
+2. **Double-click `setup.bat`**.
+3. **Follow the on-screen prompts**. The script will automatically:
+   - Install Node.js (if you don't have it).
+   - Download all required files.
+   - Configure a secure local SQLite database (Zero XAMPP or third-party servers required!).
+   - Create an invisible startup script (`start_hidden.vbs`) and place it in your Windows Startup folder so the dashboard boots silently every time you turn on your PC.
 
-## Learn More
+*Requirement: Make sure you have an active internet connection while running `setup.bat`!*
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🎨 Connecting to Lively Wallpaper
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+To make this your actual interactive desktop background:
+1. Download and install **Lively Wallpaper** (Free on the Microsoft Store).
+2. Open Lively Wallpaper.
+3. Click the **'+' (Add Wallpaper)** button at the top right.
+4. Click **'Enter URL'** and type: `http://localhost:3000`
+5. Click the arrow to save and apply. 
 
-## Deploy on Vercel
+Boom! Your desktop is now a fully interactive productivity operating system.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Features & How to Use Them
 
+### 1. 👥 Multi-Profile System
+- Click the profile icon in the top right (or in Settings) to switch between different users. 
+- Every profile has its own entirely separate Database, Tasks, Notes, Health History, and Video preferences!
 
+### 2. 📅 Health & Habit Tracking (Apple Rings Style)
+- Click on the glowing rings to log a habit (e.g., drank water, exercised, meditated).
+- The rings fill up dynamically.
+- Your progress is saved automatically to the local database. At midnight, the rings reset, and your previous day's progress is securely archived in the History Logs!
 
+### 3. ⏱️ Focus Timer & Countdowns
+- Use the built-in Pomodoro timer to manage deep work. 
+- You can add custom countdowns (e.g., "Days until Vacation") in the settings.
 
-Notes for auto start the wallpaper on startup
-Now Task Scheduler Setup
-Task 1 — Server (30 sec delay)
-FieldValueNameWallpaper ServerProgramwscript.exeArguments"D:\productivedashborad\start-server.vbs"TriggerAt log onDelay30 seconds
-Task 2 — Lively (60 sec delay)
-FieldValueNameWallpaper LivelyProgramwscript.exeArguments"D:\productivedashborad\start-lively.vbs"TriggerAt log onDelay60 seconds
+### 4. 📝 Tasks, Notes & Calendar
+- **Tasks**: Add, complete, and delete daily to-do items.
+- **Notes**: Write rich-text notes that autosave.
+- **Calendar**: A sleek mini-calendar to check dates quickly.
 
-Disable Lively from Normal Startup
-Ctrl + Shift + Esc
-→ Startup tab
-→ Find Lively Wallpaper
-→ Right click → Disable
-This prevents Lively from launching too early before the server is ready.
+### 5. 🎥 Dynamic Video Backgrounds
+- The dashboard supports high-quality `.mp4` video backgrounds!
+- Hover over the left edge of the screen to reveal the **Video Controls** (Play/Pause, Mute/Unmute).
+- Want to add your own? Go to **Settings > Wallpapers** and upload your own `.mp4`, `.jpg`, or `.png` files!
+
+### 6. 💡 100+ Motivational Quotes
+- A massive built-in database of carefully curated productivity and stoic quotes cycles on your dashboard.
+- It features an intelligent memory system that prevents the same quote from repeating in a single session!
+
+---
+
+## 🕵️ Hidden Features & Pro-Tips
+
+* **Widget Locking & Customization**: Don't like where a widget is placed? You can drag and drop almost everything! If you want to lock them in place so you don't accidentally move them, go to **Settings > Preferences** and toggle "Lock Widgets".
+* **The "Lively Click" Glitch Fix**: Lively Wallpaper sometimes loses "focus" when you click heavily. **If a button isn't responding**, simply click on an empty space on the desktop or another element first to regain focus, then click your target again. It will work!
+* **Toggle Visibility**: Don't want to see the Health Rings or the Quote today? Go to **Settings > Preferences** and hide any widget you want for a minimalist look.
+* **Database Safety**: All your data is saved locally on your machine inside a secure `.db` file. We don't use cloud servers, meaning your data is 100% private and works completely offline after the initial setup.
+
+---
+
+## 🧹 Data Management & Factory Reset
+
+We respect your storage space. Inside **Settings > Data & Backup**, you can:
+- **Clear Old Logs**: Delete Health and History logs older than a specific timeframe (15, 30, 60, 90, or 120 days) to keep your database fast and lightweight.
+- **Export Data**: Export your tasks and notes to a `.csv` file.
+- **Factory Reset Profile**: A hidden "Danger Zone" button that allows you to completely wipe all data for the current profile. It requires you to manually type "delete all" to prevent accidents.
+
+---
+
+## 👨‍💻 Developer Notes
+Made with ❤️ by **Anand** for working more efficiently every day.
+
+*(Note: The old Task Scheduler method is completely deprecated. Do not use Task Scheduler to start the server. The new `setup.bat` automatically places a lightweight `.vbs` script in your native Windows Startup folder, which is much faster and cleaner.)*
