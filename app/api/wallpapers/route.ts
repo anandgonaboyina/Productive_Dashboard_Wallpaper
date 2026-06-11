@@ -22,7 +22,7 @@ export async function GET() {
       if (isVideo || isImage) {
         return {
           type: isVideo ? 'video' : 'image',
-          src: `/wallpapers/${file}`,
+          src: `/api/media?file=${file}`,
           filename: file
         };
       }
@@ -68,9 +68,20 @@ export async function POST(req: Request) {
   }
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE(request: Request) {
   try {
-    const { filename } = await req.json();
+    const { filename } = await request.json();
+    
+    // Protect default wallpapers from physical deletion
+    const protectedWallpapers = [
+      'itachi-uchiha.png', 'kakashi.mp4', 'kakashi2.mp4', 'kakashi3.png', 
+      'kakashiChild.jpg', 'naruto.webp', 'RockLee.mp4', 'squa7.jpg', 'demonslayer1.mp4'
+    ];
+    
+    if (protectedWallpapers.includes(filename)) {
+      return NextResponse.json({ error: 'Default wallpapers cannot be deleted from disk' }, { status: 403 });
+    }
+
     if (!filename) {
       return NextResponse.json({ error: 'No filename provided' }, { status: 400 });
     }

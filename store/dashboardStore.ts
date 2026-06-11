@@ -11,8 +11,7 @@ export interface Task {
 export interface Note {
   id: string;
   title: string;
-  content: string;
-  updatedAt: number;
+  entries: Record<string, string>; // date string -> html content
 }
 
 export interface SubTopic {
@@ -49,6 +48,8 @@ interface DashboardState {
   setCurrentBgType: (type: 'image' | 'video' | null) => void;
   isVideoMuted: boolean;
   setIsVideoMuted: (muted: boolean) => void;
+  videoVolume: number;
+  setVideoVolume: (volume: number) => void;
   isVideoPlaying: boolean;
   setIsVideoPlaying: (playing: boolean) => void;
   history: Record<string, number>;
@@ -76,6 +77,7 @@ interface DashboardState {
   activeTaskTitle: string | null;
   setActiveTask: (id: string | null, title: string | null) => void;
   updateTaskDuration: (id: string, decreaseMins: number) => void;
+  editTaskDuration: (id: string, newDuration: number) => void;
 
   // Global Timer State
   timerEndAt: number | null;
@@ -98,7 +100,8 @@ interface DashboardState {
   activeNoteId: string | null;
   isNotesOpen: boolean;
   addNote: () => void;
-  updateNote: (id: string, title: string, content: string) => void;
+  updateNoteTitle: (id: string, title: string) => void;
+  updateNoteEntry: (id: string, date: string, content: string) => void;
   deleteNote: (id: string) => void;
   setActiveNote: (id: string) => void;
   toggleNotes: () => void;
@@ -139,8 +142,41 @@ interface DashboardState {
   updateClockOffset: (bgSrc: string, x: number, y: number) => void;
   resetClockOffset: (bgSrc: string) => void;
 
+  widgetOffsets: Record<string, Record<string, { x: number, y: number }>>;
+  updateWidgetOffset: (bgSrc: string, widgetId: string, x: number, y: number) => void;
+  resetWidgetOffset: (bgSrc: string, widgetId: string) => void;
+  
+  lockedWidgets: string[];
+  toggleWidgetLock: (widgetId: string) => void;
+  resetAllOffsets: (bgSrc: string) => void;
+
   currentBgSrc: string | null;
   setCurrentBgSrc: (src: string | null) => void;
+  
+  hiddenWallpapers: string[];
+  toggleWallpaperVisibility: (filename: string) => void;
+
+  // Slideshow
+  isSlideshowEnabled: boolean;
+  setIsSlideshowEnabled: (enabled: boolean) => void;
+  slideshowIntervalMins: number;
+  setSlideshowIntervalMins: (mins: number) => void;
+
+  // Support
+  upiId: string;
+  setUpiId: (id: string) => void;
+
+  // Widget Visibility Preferences
+  showHealth: boolean;
+  showQuote: boolean;
+  showTimer: boolean;
+  showCountdowns: boolean;
+  showVideoControls: boolean;
+  showClock: boolean;
+  showTasks: boolean;
+  showCalendar: boolean;
+  showTodayWork: boolean;
+  toggleVisibility: (key: 'showHealth' | 'showQuote' | 'showTimer' | 'showCountdowns' | 'showVideoControls' | 'showClock' | 'showTasks' | 'showCalendar' | 'showTodayWork') => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -207,12 +243,14 @@ export const useDashboardStore = create<DashboardState>()(
       isHidden: false,
 
       setWallpaper: (url) => set({ wallpaper: url }),
-      cycleBackground: () => set((state) => ({ bgIndex: state.bgIndex + 1, isVideoPlaying: true })),
+      cycleBackground: () => set((state) => ({ bgIndex: state.bgIndex + 1 })),
       setCurrentBgType: (type) => set({ currentBgType: type }),
       currentBgSrc: null,
       setCurrentBgSrc: (src) => set({ currentBgSrc: src }),
       isVideoMuted: true,
       setIsVideoMuted: (muted) => set({ isVideoMuted: muted }),
+      videoVolume: 0.5,
+      setVideoVolume: (volume) => set({ videoVolume: volume }),
       isVideoPlaying: true,
       setIsVideoPlaying: (playing) => set({ isVideoPlaying: playing }),
 
@@ -260,6 +298,9 @@ export const useDashboardStore = create<DashboardState>()(
       updateTaskDuration: (id, decreaseMins) => set((state) => ({
         tasks: state.tasks.map(t => t.id === id ? { ...t, duration: Math.max(0, t.duration - decreaseMins) } : t)
       })),
+      editTaskDuration: (id, newDuration) => set((state) => ({
+        tasks: state.tasks.map(t => t.id === id ? { ...t, duration: Math.max(0, newDuration) } : t)
+      })),
 
       timerEndAt: null,
       timerPausedLeft: null,
@@ -276,21 +317,35 @@ export const useDashboardStore = create<DashboardState>()(
       hideQuotePopup: () => set({ isQuotePopupOpen: false }),
 
       // Notes State
-      notes: [{ id: 'default', title: 'Quick Note', content: '', updatedAt: Date.now() }],
+      notes: [{ id: 'default', title: 'Daily Journal', entries: {} }],
       activeNoteId: 'default',
       isNotesOpen: false,
       addNote: () => {
-        const newNote = { id: Date.now().toString(), title: 'New Note', content: '', updatedAt: Date.now() };
+        const newNote = { id: Date.now().toString(), title: 'New Note', entries: {} };
         set((state) => ({ notes: [newNote, ...state.notes], activeNoteId: newNote.id }));
       },
-      updateNote: (id, title, content) => set((state) => ({
-        notes: state.notes.map(n => n.id === id ? { ...n, title, content, updatedAt: Date.now() } : n)
+      updateNoteTitle: (id, title) => set((state) => ({
+        notes: state.notes.map(n => n.id === id ? { ...n, title } : n)
       })),
+      updateNoteEntry: (id, date, content) => set((state) => {
+        return {
+          notes: state.notes.map(n => {
+            if (n.id !== id) return n;
+            const newEntries = { ...n.entries };
+            const cleanText = content.replace(/<[^>]*>?/gm, '').trim();
+            if (!cleanText) {
+              delete newEntries[date];
+            } else {
+              newEntries[date] = content;
+            }
+            return { ...n, entries: newEntries };
+          })
+        };
+      }),
       deleteNote: (id) => set((state) => {
         const newNotes = state.notes.filter(n => n.id !== id);
-        // Ensure at least one note exists
         if (newNotes.length === 0) {
-          const defaultNote = { id: Date.now().toString(), title: 'Quick Note', content: '', updatedAt: Date.now() };
+          const defaultNote = { id: Date.now().toString(), title: 'Daily Journal', entries: {} };
           return { notes: [defaultNote], activeNoteId: defaultNote.id };
         }
         return { 
@@ -413,6 +468,73 @@ export const useDashboardStore = create<DashboardState>()(
         delete newOffsets[bgSrc];
         return { clockOffsets: newOffsets };
       }),
+      
+      widgetOffsets: {},
+      updateWidgetOffset: (bgSrc, widgetId, x, y) => set((state) => {
+        const currentBgOffsets = state.widgetOffsets[bgSrc] || {};
+        return {
+          widgetOffsets: {
+            ...state.widgetOffsets,
+            [bgSrc]: { ...currentBgOffsets, [widgetId]: { x, y } }
+          }
+        };
+      }),
+      resetWidgetOffset: (bgSrc, widgetId) => set((state) => {
+        if (!state.widgetOffsets[bgSrc]) return state;
+        const newBgOffsets = { ...state.widgetOffsets[bgSrc] };
+        delete newBgOffsets[widgetId];
+        return {
+          widgetOffsets: {
+            ...state.widgetOffsets,
+            [bgSrc]: newBgOffsets
+          }
+        };
+      }),
+      
+      lockedWidgets: ['quote', 'tasks', 'countdowns'],
+      toggleWidgetLock: (widgetId) => set((state) => ({
+        lockedWidgets: state.lockedWidgets.includes(widgetId)
+          ? state.lockedWidgets.filter(id => id !== widgetId)
+          : [...state.lockedWidgets, widgetId]
+      })),
+      resetAllOffsets: (bgSrc) => set((state) => {
+        const newClockOffsets = { ...state.clockOffsets };
+        delete newClockOffsets[bgSrc];
+        
+        const newWidgetOffsets = { ...state.widgetOffsets };
+        delete newWidgetOffsets[bgSrc];
+        
+        return {
+          clockOffsets: newClockOffsets,
+          widgetOffsets: newWidgetOffsets
+        };
+      }),
+      
+      hiddenWallpapers: [],
+      toggleWallpaperVisibility: (filename) => set((state) => ({
+        hiddenWallpapers: state.hiddenWallpapers.includes(filename)
+          ? state.hiddenWallpapers.filter(name => name !== filename)
+          : [...state.hiddenWallpapers, filename]
+      })),
+
+      isSlideshowEnabled: false,
+      setIsSlideshowEnabled: (enabled) => set({ isSlideshowEnabled: enabled }),
+      slideshowIntervalMins: 10,
+      setSlideshowIntervalMins: (mins) => set({ slideshowIntervalMins: mins }),
+
+      upiId: '',
+      setUpiId: (id) => set({ upiId: id }),
+
+      showHealth: true,
+      showQuote: true,
+      showTimer: true,
+      showCountdowns: true,
+      showVideoControls: true,
+      showClock: true,
+      showTasks: true,
+      showCalendar: true,
+      showTodayWork: true,
+      toggleVisibility: (key) => set((state) => ({ [key]: !state[key] })),
     }),
     {
       name: 'dashboard-storage',

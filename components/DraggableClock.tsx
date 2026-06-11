@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function DraggableClock({ children }: { children: React.ReactNode }) {
-  const { currentBgSrc, clockOffsets, updateClockOffset, resetClockOffset } = useDashboardStore();
+  const { currentBgSrc, clockOffsets, updateClockOffset, resetClockOffset, lockedWidgets } = useDashboardStore();
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const startPos = useRef({ x: 0, y: 0 });
@@ -20,6 +20,8 @@ export default function DraggableClock({ children }: { children: React.ReactNode
   }, [currentBgSrc, clockOffsets]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (lockedWidgets.includes('clock')) return;
+
     // Only allow dragging on the wrapper itself, not on interactive children (buttons, toggles)
     if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('.cursor-pointer')) {
       // If they clicked a button inside, let the button handle it
@@ -65,16 +67,21 @@ export default function DraggableClock({ children }: { children: React.ReactNode
 
   return (
     <div 
-      className={`relative inline-block pointer-events-auto transition-transform ${!isDragging ? 'duration-300' : 'duration-0'} cursor-move group`}
-      style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+      className={`relative inline-block pointer-events-auto transition-transform ${!isDragging ? 'duration-300' : 'duration-0'} ${lockedWidgets.includes('clock') ? '' : 'cursor-move'} group`}
+      style={{ 
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        touchAction: 'none'
+      }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       onDoubleClick={handleDoubleClick}
-      title="Drag to move. Double-click to reset position."
+      title={lockedWidgets.includes('clock') ? '' : "Drag to move. Double-click to reset position."}
     >
-      <div className={`absolute inset-0 -m-8 border-2 border-white/20 bg-white/5 rounded-3xl opacity-0 transition-opacity pointer-events-none ${isDragging ? 'opacity-100' : 'group-hover:opacity-100'}`}></div>
+      {!lockedWidgets.includes('clock') && (
+        <div className={`absolute inset-0 -m-8 border-2 border-white/20 bg-white/5 rounded-3xl opacity-0 transition-opacity pointer-events-none ${isDragging ? 'opacity-100' : 'group-hover:opacity-100'}`}></div>
+      )}
       <div className="relative pointer-events-auto">
         {children}
       </div>

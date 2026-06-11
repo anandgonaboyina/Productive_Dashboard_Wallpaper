@@ -1,46 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDashboardStore, Plan, SubTopic } from '@/store/dashboardStore';
-import { Target, Plus, X, Upload, ChevronLeft, CheckCircle, Circle, Trash2, Map, Calendar, Clock, Filter, ChevronRight, ChevronDown } from 'lucide-react';
+import { Target, Plus, X, Upload, ChevronLeft, CheckCircle, Circle, Trash2, Map, Calendar, Clock, Filter, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 
 const CATEGORY_SUGGESTIONS = ['DSA', 'Web Dev', 'Academics', 'Projects', 'Personal'];
 
-async function compressImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 400;
-        const MAX_HEIGHT = 400;
-        let width = img.width;
-        let height = img.height;
+const parseLocalDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('T')[0].split('-');
+  return new Date(Number(y), Number(m) - 1, Number(d)).toLocaleDateString();
+};
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        // Heavily compress jpeg to save localstorage quota
-        resolve(canvas.toDataURL('image/jpeg', 0.5));
-      };
-      img.onerror = (error) => reject(error);
-    };
-    reader.onerror = (error) => reject(error);
-  });
-}
 
 export default function PlansManager() {
   const { isPlansOpen } = useDashboardStore();
@@ -58,6 +27,13 @@ function PlansEditor() {
   const [view, setView] = useState<'gallery' | 'add' | 'detail'>('gallery');
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('All');
+  const mainScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollBy = (ref: React.RefObject<HTMLDivElement | null>, direction: 'up' | 'down') => {
+    if (ref.current) {
+      ref.current.scrollBy({ top: direction === 'up' ? -200 : 200, behavior: 'smooth' });
+    }
+  };
 
   // Get unique categories for filter
   const allCategories = Array.from(new Set(plans.map(p => p.category)));
@@ -130,32 +106,48 @@ function PlansEditor() {
         </div>
 
         {/* Content Area */}
-        <div
-          className={`flex-1 p-6 ${view === 'detail' ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain'}`}
-          onWheel={e => e.stopPropagation()}
-        >
-          {view === 'gallery' && (
-            <GalleryView
-              groupedPlans={groupedPlans}
-              onSelect={(id) => { setSelectedPlanId(id); setView('detail'); }}
-            />
-          )}
+        <div className="relative flex-1 overflow-hidden flex flex-col">
+          <div
+            ref={mainScrollRef}
+            className={`flex-1 p-6 ${view === 'detail' ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden'}`}
+            onWheel={e => {
+              if (view !== 'detail') {
+                e.stopPropagation();
+                e.currentTarget.scrollTop += e.deltaY;
+              }
+            }}
+          >
+            {view === 'gallery' && (
+              <GalleryView
+                groupedPlans={groupedPlans}
+                onSelect={(id) => { setSelectedPlanId(id); setView('detail'); }}
+              />
+            )}
 
-          {view === 'add' && (
-            <AddPlanView
-              onAdd={(p) => { addPlan(p); setView('gallery'); }}
-              onCancel={() => setView('gallery')}
-            />
-          )}
+            {view === 'add' && (
+              <AddPlanView
+                onAdd={(p) => { addPlan(p); setView('gallery'); }}
+                onCancel={() => setView('gallery')}
+              />
+            )}
 
-          {view === 'detail' && selectedPlan && (
-            <DetailView
-              plan={selectedPlan}
-              onAddSub={(title) => addSubTopic(selectedPlan.id, title)}
-              onToggleSub={(subId) => toggleSubTopic(selectedPlan.id, subId)}
-              onDeleteSub={(subId) => deleteSubTopic(selectedPlan.id, subId)}
-              onDeletePlan={() => { deletePlan(selectedPlan.id); setView('gallery'); }}
-            />
+            {view === 'detail' && selectedPlan && (
+              <DetailView
+                plan={selectedPlan}
+                onAddSub={(title) => addSubTopic(selectedPlan.id, title)}
+                onToggleSub={(subId) => toggleSubTopic(selectedPlan.id, subId)}
+                onDeleteSub={(subId) => deleteSubTopic(selectedPlan.id, subId)}
+                onDeletePlan={() => { deletePlan(selectedPlan.id); setView('gallery'); }}
+              />
+            )}
+          </div>
+
+          {/* Tiny Scroll Arrows (Hidden in detail view) */}
+          {view !== 'detail' && (
+            <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between items-center pointer-events-none">
+              <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(mainScrollRef, 'up')} className="pointer-events-auto flex items-center justify-center w-12 h-5 bg-blue-500/80 hover:bg-blue-500 border-x border-b border-blue-400/50 rounded-b-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronUp size={16} strokeWidth={3} /></button>
+              <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(mainScrollRef, 'down')} className="pointer-events-auto flex items-center justify-center w-12 h-5 bg-blue-500/80 hover:bg-blue-500 border-x border-t border-blue-400/50 rounded-t-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronDown size={16} strokeWidth={3} /></button>
+            </div>
           )}
         </div>
       </div>
@@ -192,10 +184,16 @@ function GalleryView({ groupedPlans, onSelect }: { groupedPlans: Record<string, 
                   className="group relative h-48 rounded-2xl overflow-hidden cursor-pointer border border-white/10 hover:border-white/30 transition-all hover:-translate-y-1 hover:shadow-2xl shadow-black/50"
                 >
                   {/* Background Thumbnail */}
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                    style={{ backgroundImage: `url(${plan.thumbnailBase64})` }}
-                  />
+                  {plan.thumbnailBase64 ? (
+                    <div
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+                      style={{ backgroundImage: `url(${plan.thumbnailBase64})`, backgroundColor: '#1f2937' }}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-900 transition-transform duration-700 group-hover:scale-110 flex items-center justify-center p-4">
+                       <span className="text-white/20 font-bold text-3xl text-center uppercase tracking-widest leading-none drop-shadow-md break-words">{plan.title}</span>
+                    </div>
+                  )}
                   {/* Gradient Overlay for text readability */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
 
@@ -204,7 +202,7 @@ function GalleryView({ groupedPlans, onSelect }: { groupedPlans: Record<string, 
 
                     <div className="flex items-center gap-3 text-xs font-medium text-white/60 mb-3">
                       <span className="flex items-center gap-1"><Clock size={12} /> {plan.duration}</span>
-                      <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(plan.endDate).toLocaleDateString()}</span>
+                      <span className="flex items-center gap-1"><Calendar size={12} /> {parseLocalDate(plan.endDate)}</span>
                     </div>
 
                     {/* Progress Bar */}
@@ -243,17 +241,28 @@ function AddPlanView({ onAdd, onCancel }: { onAdd: (plan: Plan) => void, onCance
     if (!file) return;
     setLoading(true);
     try {
-      const base64 = await compressImage(file);
-      setThumb(base64);
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/thumbnails', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setThumb(data.url);
+      } else {
+        alert('Upload failed: ' + data.error);
+      }
     } catch (err) {
-      console.error('Failed to compress image', err);
+      console.error('Failed to upload image', err);
+      alert('Upload failed');
     }
     setLoading(false);
   };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !category.trim() || !duration.trim() || !endDate || !thumb) return;
+    if (!title.trim() || !category.trim() || !duration.trim() || !endDate) return;
     onAdd({
       id: Date.now().toString(),
       title: title.trim(),
@@ -295,38 +304,6 @@ function AddPlanView({ onAdd, onCancel }: { onAdd: (plan: Plan) => void, onCance
         </datalist>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-white/70 font-medium">Thumbnail</label>
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className="h-48 border-2 border-dashed border-white/20 hover:border-blue-500 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-colors bg-black/20 overflow-hidden relative group"
-        >
-          {thumb ? (
-            <>
-              <div className="absolute inset-0 bg-cover bg-center opacity-50 group-hover:opacity-30 transition-opacity" style={{ backgroundImage: `url(${thumb})` }} />
-              <div className="z-10 flex flex-col items-center gap-2">
-                <CheckCircle className="text-green-400" size={32} />
-                <span className="text-white font-medium">Image Compressed & Ready</span>
-                <span className="text-white/50 text-sm">Click to change</span>
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center gap-3 text-white/50 group-hover:text-blue-400 transition-colors">
-              <Upload size={32} />
-              <span>{loading ? 'Compressing...' : 'Click to upload a high-res image'}</span>
-              <span className="text-xs text-white/30 px-8 text-center">It will be aggressively compressed safely for local storage so it never disappears on reboot.</span>
-            </div>
-          )}
-        </div>
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleImage}
-        />
-      </div>
-
       <div className="flex gap-4">
         <div className="flex flex-col gap-2 flex-1">
           <label className="text-white/70 font-medium">Duration</label>
@@ -347,11 +324,39 @@ function AddPlanView({ onAdd, onCancel }: { onAdd: (plan: Plan) => void, onCance
         </div>
       </div>
 
+      <div className="flex flex-col gap-2">
+        <label className="text-white/70 font-medium">Cover Thumbnail <span className="text-white/30 text-xs font-normal">(Optional)</span></label>
+        <div className="flex items-center gap-4 bg-black/20 p-4 rounded-xl border border-white/10">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl transition-all text-white font-medium shadow-sm shrink-0"
+          >
+             <Upload size={18} /> {loading ? 'Uploading...' : 'Upload Image'}
+          </button>
+          
+          {thumb ? (
+            <div className="flex items-center gap-2 text-green-400 font-medium">
+              <CheckCircle size={18} /> <span className="text-sm">Image uploaded successfully</span>
+            </div>
+          ) : (
+            <span className="text-xs text-white/40 leading-tight">If skipped, the Plan Title will be used as a beautiful text fallback!</span>
+          )}
+        </div>
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleImage}
+        />
+      </div>
+
       <div className="flex justify-end gap-3 mt-4">
         <button type="button" onClick={onCancel} className="px-6 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/10 font-medium transition-colors">
           Cancel
         </button>
-        <button type="submit" disabled={!title || !category || !duration || !endDate || !thumb} className="px-8 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors shadow-lg shadow-blue-500/20">
+        <button type="submit" disabled={!title || !category || !duration || !endDate} className="px-8 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors shadow-lg shadow-blue-500/20">
           Create Master Plan
         </button>
       </div>
@@ -365,6 +370,13 @@ function DetailView({ plan, onAddSub, onToggleSub, onDeleteSub, onDeletePlan }: 
   const [isEditing, setIsEditing] = useState(false);
   const [editDuration, setEditDuration] = useState(plan.duration);
   const [editEndDate, setEditEndDate] = useState(plan.endDate);
+  const checklistScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollBy = (ref: React.RefObject<HTMLDivElement | null>, direction: 'up' | 'down') => {
+    if (ref.current) {
+      ref.current.scrollBy({ top: direction === 'up' ? -200 : 200, behavior: 'smooth' });
+    }
+  };
 
   const submitSub = (e: React.FormEvent) => {
     e.preventDefault();
@@ -387,7 +399,13 @@ function DetailView({ plan, onAddSub, onToggleSub, onDeleteSub, onDeletePlan }: 
       {/* Left Column: Visuals & Progress */}
       <div className="w-1/3 flex flex-col gap-6 shrink-0">
         <div className="w-full aspect-square rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative">
-          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${plan.thumbnailBase64})` }} />
+          {plan.thumbnailBase64 ? (
+            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${plan.thumbnailBase64})`, backgroundColor: '#1f2937' }} />
+          ) : (
+             <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-900 flex items-center justify-center p-4">
+               <span className="text-white/20 font-bold text-4xl text-center uppercase tracking-widest leading-none drop-shadow-md break-words">{plan.title}</span>
+             </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4 text-center flex flex-col gap-2">
             <span className="px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-xs font-semibold text-white tracking-widest uppercase shadow-xl inline-block mx-auto border border-white/10">
@@ -418,7 +436,7 @@ function DetailView({ plan, onAddSub, onToggleSub, onDeleteSub, onDeletePlan }: 
                   <Clock size={10} /> {plan.duration}
                 </span>
                 <span className="flex items-center gap-1 px-2 py-1 bg-black/60 group-hover:bg-black/80 backdrop-blur-md rounded-full text-[10px] font-medium text-white/80 border border-white/10 transition-colors">
-                  <Calendar size={10} /> {new Date(plan.endDate).toLocaleDateString()}
+                  <Calendar size={10} /> {parseLocalDate(plan.endDate)}
                 </span>
               </div>
             )}
@@ -443,41 +461,50 @@ function DetailView({ plan, onAddSub, onToggleSub, onDeleteSub, onDeletePlan }: 
       </div>
 
       {/* Right Column: Interactive Checklist */}
-      <div className="flex-1 flex flex-col bg-black/20 border border-white/10 rounded-3xl p-6 overflow-hidden">
+      <div className="flex-1 flex flex-col bg-black/20 border border-white/10 rounded-3xl p-6 overflow-hidden relative">
         <h3 className="text-xl font-bold text-white/80 mb-6 flex items-center gap-2">
           <CheckCircle className="text-green-400" /> Action Items
         </h3>
 
-        <div
-          className="flex-1 overflow-y-auto pr-2 flex flex-col gap-2 overscroll-contain"
-          onWheel={e => e.stopPropagation()}
-        >
-          {plan.subTopics.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-white/30 italic text-center px-8">
-              No action items yet. Break your ambitious plan down into small, conquerable steps below!
-            </div>
-          ) : (
-            plan.subTopics.map(st => (
-              <div
-                key={st.id}
-                onClick={() => onToggleSub(st.id)}
-                className={`group flex items-center gap-4 p-4 rounded-2xl cursor-pointer border border-transparent hover:border-white/10 transition-all ${st.completed ? 'bg-white/5 opacity-60' : 'bg-black/40 shadow-lg'}`}
-              >
-                <div className={`shrink-0 transition-colors ${st.completed ? 'text-green-500' : 'text-white/20 group-hover:text-white/50'}`}>
-                  {st.completed ? <CheckCircle size={24} /> : <Circle size={24} />}
-                </div>
-                <span className={`flex-1 text-lg transition-all ${st.completed ? 'text-white/50 line-through' : 'text-white/90'}`}>
-                  {st.title}
-                </span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDeleteSub(st.id); }}
-                  className="opacity-0 group-hover:opacity-100 p-2 text-white/30 hover:text-red-400 hover:bg-white/10 rounded-xl transition-all shrink-0"
-                >
-                  <Trash2 size={18} />
-                </button>
+        <div className="relative flex-1 overflow-hidden flex flex-col">
+          <div
+            ref={checklistScrollRef}
+            className="flex-1 overflow-y-auto pr-2 flex flex-col gap-2 overscroll-contain [&::-webkit-scrollbar]:hidden"
+            onWheel={e => { e.stopPropagation(); e.currentTarget.scrollTop += e.deltaY; }}
+          >
+            {plan.subTopics.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-white/30 italic text-center px-8">
+                No action items yet. Break your ambitious plan down into small, conquerable steps below!
               </div>
-            ))
-          )}
+            ) : (
+              plan.subTopics.map(st => (
+                <div
+                  key={st.id}
+                  onClick={() => onToggleSub(st.id)}
+                  className={`group flex items-center gap-4 p-4 rounded-2xl cursor-pointer border border-transparent hover:border-white/10 transition-all ${st.completed ? 'bg-white/5 opacity-60' : 'bg-black/40 shadow-lg'}`}
+                >
+                  <div className={`shrink-0 transition-colors ${st.completed ? 'text-green-500' : 'text-white/20 group-hover:text-white/50'}`}>
+                    {st.completed ? <CheckCircle size={24} /> : <Circle size={24} />}
+                  </div>
+                  <span className={`flex-1 text-lg transition-all ${st.completed ? 'text-white/50 line-through' : 'text-white/90'}`}>
+                    {st.title}
+                  </span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDeleteSub(st.id); }}
+                    className="opacity-0 group-hover:opacity-100 p-2 text-white/30 hover:text-red-400 hover:bg-white/10 rounded-xl transition-all shrink-0"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Tiny Scroll Arrows */}
+          <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between items-center pointer-events-none">
+            <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(checklistScrollRef, 'up')} className="pointer-events-auto flex items-center justify-center w-12 h-5 bg-blue-500/80 hover:bg-blue-500 border-x border-b border-blue-400/50 rounded-b-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronUp size={16} strokeWidth={3} /></button>
+            <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(checklistScrollRef, 'down')} className="pointer-events-auto flex items-center justify-center w-12 h-5 bg-blue-500/80 hover:bg-blue-500 border-x border-t border-blue-400/50 rounded-t-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronDown size={16} strokeWidth={3} /></button>
+          </div>
         </div>
 
         <form onSubmit={submitSub} className="mt-4 pt-4 border-t border-white/10">
@@ -594,45 +621,53 @@ function CustomDatePicker({ value, onChange }: { value: string, onChange: (date:
       </div>
 
       {isOpen && (
-        <div ref={popupRef} className="absolute top-full left-0 mt-2 w-72 bg-gray-900 border border-white/20 rounded-2xl shadow-2xl p-4 z-[100] animate-in slide-in-from-top-2">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-4">
-            <button onClick={prevMonth} className="p-1 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors">
-              <ChevronLeft size={20} />
-            </button>
-            <div className="text-white font-medium">
-              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-auto">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+            onClick={() => setIsOpen(false)} 
+          />
+          
+          <div ref={popupRef} className="relative w-80 bg-gray-900 border border-white/20 rounded-3xl shadow-2xl p-5 z-10 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <button onClick={prevMonth} className="p-2 hover:bg-white/10 rounded-xl text-white/70 hover:text-white transition-colors">
+                <ChevronLeft size={20} />
+              </button>
+              <div className="text-white font-semibold text-lg tracking-wide">
+                {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+              </div>
+              <button onClick={nextMonth} className="p-2 hover:bg-white/10 rounded-xl text-white/70 hover:text-white transition-colors">
+                <ChevronRight size={20} />
+              </button>
             </div>
-            <button onClick={nextMonth} className="p-1 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors">
-              <ChevronRight size={20} />
-            </button>
-          </div>
 
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-1 text-center mb-2">
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-              <div key={d} className="text-xs font-semibold text-white/40">{d}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1 text-center">
-            {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-              <div key={`blank-${i}`} />
-            ))}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const isSelected = value === `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            {/* Days Grid */}
+            <div className="grid grid-cols-7 gap-1 text-center mb-3">
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                <div key={d} className="text-xs font-bold text-white/40 tracking-wider uppercase">{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                <div key={`blank-${i}`} />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const isSelected = value === `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-              return (
-                <button
-                  key={day}
-                  onClick={(e) => { e.preventDefault(); handleSelect(day); }}
-                  className={`h-8 w-8 rounded-full text-sm font-medium transition-all mx-auto flex items-center justify-center
-                    ${isSelected ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
-                >
-                  {day}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={day}
+                    onClick={(e) => { e.preventDefault(); handleSelect(day); }}
+                    className={`h-9 w-9 rounded-full text-sm font-medium transition-all mx-auto flex items-center justify-center
+                      ${isSelected ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

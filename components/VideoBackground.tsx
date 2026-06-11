@@ -7,12 +7,18 @@ export default function VideoBackground() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [backgrounds, setBackgrounds] = useState<{ type: string, src: string }[]>([
-    { type: 'image', src: '/wallpapers/naruto.webp' } // Fallback initial state
+    { type: 'image', src: '/api/media?file=naruto.webp' } // Fallback initial state
   ]);
   const isVideoMuted = useDashboardStore((state) => state.isVideoMuted);
   const setIsVideoMuted = useDashboardStore((state) => state.setIsVideoMuted);
+  const videoVolume = useDashboardStore((state) => state.videoVolume);
   const isVideoPlaying = useDashboardStore((state) => state.isVideoPlaying);
   const setIsVideoPlaying = useDashboardStore((state) => state.setIsVideoPlaying);
+  const showVideoControls = useDashboardStore((state) => state.showVideoControls);
+
+  const isSlideshowEnabled = useDashboardStore((state) => state.isSlideshowEnabled);
+  const slideshowIntervalMins = useDashboardStore((state) => state.slideshowIntervalMins);
+  const cycleBackground = useDashboardStore((state) => state.cycleBackground);
 
   // Fetch dynamic backgrounds
   useEffect(() => {
@@ -21,7 +27,16 @@ export default function VideoBackground() {
         .then(res => res.json())
         .then(data => {
           if (data.backgrounds && data.backgrounds.length > 0) {
-            setBackgrounds(data.backgrounds);
+            // Filter out hidden wallpapers using the store
+            const hidden = useDashboardStore.getState().hiddenWallpapers || [];
+            const visibleBackgrounds = data.backgrounds.filter((bg: any) => !hidden.includes(bg.filename));
+            
+            // If all are hidden, fallback to naruto.webp
+            if (visibleBackgrounds.length === 0) {
+              setBackgrounds([{ type: 'image', src: '/api/media?file=naruto.webp' }]);
+            } else {
+              setBackgrounds(visibleBackgrounds);
+            }
           }
         })
         .catch(err => console.error("Failed to load wallpapers:", err));
@@ -33,6 +48,17 @@ export default function VideoBackground() {
     window.addEventListener('wallpapers-updated', fetchWallpapers);
     return () => window.removeEventListener('wallpapers-updated', fetchWallpapers);
   }, []);
+
+  // Slideshow Logic
+  useEffect(() => {
+    if (!isSlideshowEnabled) return;
+
+    const intervalId = setInterval(() => {
+      cycleBackground();
+    }, slideshowIntervalMins * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [isSlideshowEnabled, slideshowIntervalMins, cycleBackground]);
 
   const safeIndex = bgIndex % backgrounds.length;
   const currentBg = backgrounds[safeIndex];
@@ -53,17 +79,18 @@ export default function VideoBackground() {
           // Play muted first to bypass browser autoplay policies
           videoRef.current.muted = true;
           videoRef.current.play().then(() => {
-            // Once playing successfully, restore the user's desired mute state
+            // Once playing successfully, restore the user's desired mute state and volume
             if (videoRef.current) {
               videoRef.current.muted = isVideoMuted;
+              videoRef.current.volume = videoVolume;
             }
           }).catch(e => {
             console.log("Video play failed", e);
-            // DO NOT reset isVideoPlaying to false here, as it forces the user to manually click play again
           });
         } else {
           videoRef.current.pause();
           videoRef.current.muted = isVideoMuted;
+          videoRef.current.volume = videoVolume;
         }
       }
     };
@@ -79,7 +106,7 @@ export default function VideoBackground() {
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [currentBg?.src, currentBg?.type, isVideoPlaying, isVideoMuted, setIsVideoPlaying]);
+  }, [currentBg?.src, currentBg?.type, isVideoPlaying, isVideoMuted, videoVolume, setIsVideoPlaying]);
 
   if (!currentBg) return null;
 
@@ -100,50 +127,58 @@ export default function VideoBackground() {
             src={currentBg.src}
             className="fixed inset-0 w-full h-full object-cover -z-20 transition-opacity duration-1000"
             loop
-            autoPlay={isVideoPlaying}
             muted={isVideoMuted}
             playsInline
+            onPlay={(e) => {
+              if (!isVideoPlaying) {
+                e.currentTarget.pause();
+              }
+            }}
           />
           {/* Controls */}
-          <div className="absolute top-6 left-20 z-50 flex gap-1">
-            {/* Play/Pause Toggle Button */}
-            <button
-              onClick={() => setIsVideoPlaying(!isVideoPlaying)}
-              className="group flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-white/20 hover:shadow-2xl"
-              title={isVideoPlaying ? "Pause Video" : "Play Video"}
-            >
-              {isVideoPlaying ? (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="6" y="4" width="4" height="16"></rect>
-                  <rect x="14" y="4" width="4" height="16"></rect>
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-              )}
-            </button>
-            {/* Mute Toggle Button */}
-            <button
-              onClick={() => setIsVideoMuted(!isVideoMuted)}
-              className="group flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-white/20 hover:shadow-2xl"
-              title={isVideoMuted ? "Unmute Video" : "Mute Video"}
-            >
-              {isVideoMuted ? (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <line x1="23" y1="9" x2="17" y2="15"></line>
-                  <line x1="17" y1="9" x2="23" y2="15"></line>
-                </svg>
-              ) : (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                </svg>
-              )}
-            </button>
-          </div>
+          {showVideoControls && (
+            <>
+              <div className="absolute top-6 left-20 z-50 flex gap-2">
+                {/* Play/Pause Toggle Button */}
+                <button
+                  onClick={() => setIsVideoPlaying(!isVideoPlaying)}
+                  className="group flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-white/20 hover:shadow-2xl"
+                  title={isVideoPlaying ? "Pause Video" : "Play Video"}
+                >
+                  {isVideoPlaying ? (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="6" y="4" width="4" height="16"></rect>
+                      <rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                  )}
+                </button>
+                {/* Mute Toggle Button */}
+                <button
+                  onClick={() => setIsVideoMuted(!isVideoMuted)}
+                  className="group flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-white/20 hover:shadow-2xl"
+                  title={isVideoMuted ? "Unmute Video" : "Mute Video"}
+                >
+                  {isVideoMuted ? (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <line x1="23" y1="9" x2="17" y2="15"></line>
+                      <line x1="17" y1="9" x2="23" y2="15"></line>
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
         </>
       )}
     </>

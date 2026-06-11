@@ -14,6 +14,7 @@ import Timetable from "@/components/Timetable";
 import HealthRings from "@/components/HealthRings";
 import HealthModal from "@/components/HealthModal";
 import DraggableClock from "@/components/DraggableClock";
+import DraggableWidget from "@/components/DraggableWidget";
 import SettingsModal from "@/components/SettingsModal";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, CalendarDays, Settings } from "lucide-react";
@@ -29,6 +30,14 @@ export default function Dashboard() {
   const [isCountdownsExpanded, setIsCountdownsExpanded] = useState(false);
   const isTimetableOpen = useDashboardStore((state) => state.isTimetableOpen);
   const setIsTimetableOpen = useDashboardStore((state) => state.setIsTimetableOpen);
+
+  const showHealth = useDashboardStore((state) => state.showHealth);
+  const showQuote = useDashboardStore((state) => state.showQuote);
+  const showTimer = useDashboardStore((state) => state.showTimer);
+  const showCountdowns = useDashboardStore((state) => state.showCountdowns);
+  const showClock = useDashboardStore((state) => state.showClock);
+  const showTasks = useDashboardStore((state) => state.showTasks);
+  const showCalendar = useDashboardStore((state) => state.showCalendar);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -83,7 +92,7 @@ export default function Dashboard() {
   return (
     <main className="relative overflow-hidden w-full flex-1">
       {/* Quote Popup */}
-      {!isHidden && <QuotePopup />}
+      {!isHidden && showQuote && <QuotePopup />}
 
       {/* Stats Modal */}
       {!isHidden && <StatsModal />}
@@ -112,31 +121,37 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Top Leftish: Exam Countdowns */}
-      {!isHidden && (
-        <div className="absolute top-32 right-[320px] z-50 flex flex-col gap-4 items-center">
-          {countdowns.length > 0 && (
-            <Countdown key={countdowns[0].id} id={countdowns[0].id} />
-          )}
+      {/* Top Leftish: Target Countdowns */}
+      {!isHidden && showCountdowns && (
+        <div className="absolute top-32 right-[320px] z-50">
+          <DraggableWidget id="countdowns">
+            <div className="flex flex-col gap-4 items-center">
+              {countdowns.length > 0 && (
+                <Countdown key={countdowns[0].id} id={countdowns[0].id} />
+              )}
 
-          {isCountdownsExpanded && countdowns.slice(1).map(c => (
-            <Countdown key={c.id} id={c.id} />
-          ))}
+              {isCountdownsExpanded && countdowns.slice(1).map(c => (
+                <Countdown key={c.id} id={c.id} />
+              ))}
 
-          <button
-            onClick={() => setIsCountdownsExpanded(!isCountdownsExpanded)}
-            className="flex items-center justify-center p-1.5 text-white/40 hover:text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/10"
-            title={isCountdownsExpanded ? "Hide extra targets" : "Show all targets"}
-          >
-            {isCountdownsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </button>
+              <button
+                onClick={() => setIsCountdownsExpanded(!isCountdownsExpanded)}
+                className="flex items-center justify-center p-1.5 text-white/40 hover:text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/10"
+                title={isCountdownsExpanded ? "Hide extra targets" : "Show all targets"}
+              >
+                {isCountdownsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </button>
+            </div>
+          </DraggableWidget>
         </div>
       )}
 
       {/* Top Right: Mini Calendar */}
-      <div className="absolute top-6 right-4 z-50">
-        <MiniCalendar />
-      </div>
+      {showCalendar && (
+        <div className="absolute top-6 right-4 z-50">
+          <MiniCalendar />
+        </div>
+      )}
 
       {/* Dashboard components will be positioned absolutely within this container */}
 
@@ -148,7 +163,7 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom Center (Above Dock): Timetable */}
-      <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-300 flex flex-col items-center">
+      <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-[50] flex flex-col items-center">
         {isTimetableOpen ? (
           <div className="flex flex-col items-center gap-2">
             <Timetable />
@@ -175,9 +190,11 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom Left: Health Rings */}
-      <div className="absolute bottom-12 left-12 z-50">
-        <HealthRings />
-      </div>
+      {showHealth && (
+        <div className="absolute bottom-12 left-12 z-50">
+          <HealthRings />
+        </div>
+      )}
 
       {/* Settings Toggle Button */}
       <div className="absolute bottom-[300px] right-1 z-50">
@@ -192,8 +209,8 @@ export default function Dashboard() {
 
       {/* Bottom Right: TaskManager & Timer */}
       <div className="absolute bottom-12 right-12 z-50 flex flex-col items-end gap-2">
-        {!isHidden && <TaskManager />}
-        <Timer />
+        {!isHidden && showTasks && <TaskManager />}
+        {showTimer && <Timer />}
       </div>
 
       {/* Settings Modal */}
