@@ -11,9 +11,10 @@ const DEFAULT_WALLPAPERS = [
 ];
 
 export default function SettingsModal() {
-  const { isSettingsOpen, toggleSettings, is24HourClock, toggle24HourClock, currentBgSrc, hiddenWallpapers, toggleWallpaperVisibility, showHealth, showQuote, showTimer, showCountdowns, showVideoControls, showClock, showTasks, showCalendar, showTodayWork, toggleVisibility, isSlideshowEnabled, setIsSlideshowEnabled, slideshowIntervalMins, setSlideshowIntervalMins, lockedWidgets, toggleWidgetLock, resetAllOffsets } = useDashboardStore();
+  const { isSettingsOpen, toggleSettings, is24HourClock, toggle24HourClock, currentBgSrc, hiddenWallpapers, toggleWallpaperVisibility, showHealth, showQuote, showTimer, showCountdowns, showVideoControls, showClock, showTasks, showCalendar, showTodayWork, toggleVisibility, isSlideshowEnabled, setIsSlideshowEnabled, slideshowIntervalMins, setSlideshowIntervalMins, lockedWidgets, toggleWidgetLock, resetAllOffsets, clearOldData, clearAllData } = useDashboardStore();
   const [activeTab, setActiveTab] = useState<'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about'>('wallpapers');
   const [coffeeAmount, setCoffeeAmount] = useState<number>(20);
+  const [deleteDays, setDeleteDays] = useState<number>(60);
   const upiId = 'gonaboyinaanandkumar@ybl';
 
   const [wallpapers, setWallpapers] = useState<{ type: string, src: string, filename: string }[]>([]);
@@ -784,6 +785,69 @@ export default function SettingsModal() {
                           <input type="file" className="hidden" accept=".json" onChange={handleImportData} />
                         </label>
                       </div>
+                    </div>
+                    
+                    {/* Clear Old Data */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5 gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-white/5 rounded-xl">
+                          <Trash2 size={24} className="text-yellow-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-lg">Clear Old Data</h4>
+                          <p className="text-sm text-white/50">Delete health and history logs older than the selected timeframe.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <select
+                          value={deleteDays}
+                          onChange={(e) => setDeleteDays(Number(e.target.value))}
+                          className="bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-yellow-500"
+                        >
+                          <option value={15}>Older than 15 Days</option>
+                          <option value={30}>Older than 30 Days</option>
+                          <option value={60}>Older than 60 Days</option>
+                          <option value={90}>Older than 90 Days</option>
+                          <option value={120}>Older than 120 Days</option>
+                        </select>
+                        <button
+                          onClick={async () => {
+                            if (confirm(`Are you sure you want to delete all history logs older than ${deleteDays} days? This action cannot be undone.`)) {
+                              await clearOldData(deleteDays);
+                              alert(`Logs older than ${deleteDays} days cleared successfully.`);
+                            }
+                          }}
+                          className="px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 rounded-xl text-sm font-medium transition-colors border border-yellow-500/30 flex items-center gap-2"
+                        >
+                          <Trash2 size={16} /> Delete Old Logs
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Danger Zone: Delete All Data */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-2xl bg-red-500/10 border border-red-500/30 gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-red-500/20 rounded-xl">
+                          <Trash2 size={24} className="text-red-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-lg text-red-300">Factory Reset Profile</h4>
+                          <p className="text-sm text-white/60">Permanently delete ALL tasks, notes, health, and history for this profile.</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const userTyped = prompt('Type "delete all" to confirm resetting all data for this profile:');
+                          if (userTyped?.toLowerCase() === 'delete all') {
+                            await clearAllData();
+                          } else if (userTyped !== null) {
+                            alert('Confirmation failed. Data was not deleted.');
+                          }
+                        }}
+                        className="px-4 py-2 bg-red-500/20 hover:bg-red-500/80 text-red-300 hover:text-white rounded-xl text-sm font-medium transition-colors border border-red-500/50 flex items-center gap-2 whitespace-nowrap"
+                      >
+                        <Trash2 size={16} /> Reset All Data
+                      </button>
                     </div>
                   </div>
                 </div>

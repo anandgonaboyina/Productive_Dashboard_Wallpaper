@@ -69,3 +69,45 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to update health data' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const profileId = parseInt(searchParams.get('profileId') || '1');
+    const action = searchParams.get('action'); // 'deleteAll' or 'olderThan60'
+
+    if (!action) {
+      return NextResponse.json({ error: 'Missing action parameter' }, { status: 400 });
+    }
+
+    if (action === 'deleteAll') {
+      await prisma.healthRecord.deleteMany({
+        where: { profileId }
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === 'olderThan') {
+      const days = parseInt(searchParams.get('days') || '60', 10);
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      const formattedDate = cutoffDate.toISOString().split('T')[0];
+
+      await prisma.healthRecord.deleteMany({
+        where: {
+          profileId,
+          date: {
+            lt: formattedDate
+          }
+        }
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: 'Invalid action parameter' }, { status: 400 });
+  } catch (error) {
+    console.error('Error deleting health data:', error);
+    return NextResponse.json({ error: 'Failed to delete health data' }, { status: 500 });
+  }
+}
+

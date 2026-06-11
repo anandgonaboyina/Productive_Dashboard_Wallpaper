@@ -175,6 +175,9 @@ interface DashboardState {
   showCalendar: boolean;
   showTodayWork: boolean;
   toggleVisibility: (key: 'showHealth' | 'showQuote' | 'showTimer' | 'showCountdowns' | 'showVideoControls' | 'showClock' | 'showTasks' | 'showCalendar' | 'showTodayWork') => void;
+
+  clearOldData: (days: number) => Promise<void>;
+  clearAllData: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -531,6 +534,54 @@ export const useDashboardStore = create<DashboardState>()(
       showCalendar: true,
       showTodayWork: true,
       toggleVisibility: (key) => set((state) => ({ [key]: !state[key] })),
+
+      clearOldData: async (days: number) => {
+        try {
+          const profileId = getActiveProfileId();
+          await fetch(`/api/health?profileId=${profileId}&action=olderThan&days=${days}`, { method: 'DELETE' });
+          
+          set((state) => {
+            const newHistory = { ...state.history };
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - days);
+            const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+
+            Object.keys(newHistory).forEach((key) => {
+              if (key < cutoffDateStr) {
+                delete newHistory[key];
+              }
+            });
+
+            // Also clear healthData locally
+            const newHealthData = { ...state.healthData };
+            Object.keys(newHealthData).forEach((key) => {
+              if (key < cutoffDateStr) {
+                delete newHealthData[key];
+              }
+            });
+
+            return { history: newHistory, healthData: newHealthData };
+          });
+        } catch (err) {
+          console.error("Failed to clear old data", err);
+        }
+      },
+
+      clearAllData: async () => {
+        try {
+          const profileId = getActiveProfileId();
+          await fetch(`/api/health?profileId=${profileId}&action=deleteAll`, { method: 'DELETE' });
+          await fetch('/api/store', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profileId, data: null })
+          });
+          localStorage.removeItem(`dashboard-storage-${profileId}`);
+          window.location.reload();
+        } catch (err) {
+          console.error("Failed to clear all data", err);
+        }
+      },
     }),
     {
       name: 'dashboard-storage',
