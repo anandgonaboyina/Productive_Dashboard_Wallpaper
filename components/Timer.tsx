@@ -14,6 +14,7 @@ export default function Timer() {
     timerEndAt, setTimerEndAt, 
     timerPausedLeft, setTimerPausedLeft,
     timerInitialMins, setTimerInitialMins,
+    timerLastSavedChunks, setTimerLastSavedChunks,
     isAlarmPlaying, setIsAlarmPlaying,
     addMins,
     showQuotePopup, isHidden,
@@ -21,9 +22,6 @@ export default function Timer() {
   } = useDashboardStore();
 
   const [customMins, setCustomMins] = useState('');
-  
-  // Ref to track saved chunks for active task timer
-  const lastSavedChunksRef = useRef(0);
   
   // Local state for UI updates (does not spam DB)
   const [localTimeLeft, setLocalTimeLeft] = useState(0);
@@ -57,7 +55,7 @@ export default function Timer() {
 
       const elapsedSeconds = (timerInitialMins * 60) - currentRemaining;
       if (elapsedSeconds > 0) {
-        const finalUnsavedSeconds = elapsedSeconds - (lastSavedChunksRef.current * 600);
+        const finalUnsavedSeconds = elapsedSeconds - (timerLastSavedChunks * 600);
         const finalUnsavedMins = Math.round(finalUnsavedSeconds / 60);
         
         if (finalUnsavedMins > 0) {
@@ -69,7 +67,7 @@ export default function Timer() {
     }
     
     setActiveTask(null, null);
-    lastSavedChunksRef.current = 0;
+    setTimerLastSavedChunks(0);
   };
 
   // Main tick interval
@@ -85,13 +83,13 @@ export default function Timer() {
            const elapsedSeconds = (timerInitialMins * 60) - remaining;
            if (elapsedSeconds >= 0) {
              const chunks = Math.floor(elapsedSeconds / 600); // 10 minutes = 600 seconds
-             if (chunks > lastSavedChunksRef.current) {
-                const diff = chunks - lastSavedChunksRef.current;
+             if (chunks > timerLastSavedChunks) {
+                const diff = chunks - timerLastSavedChunks;
                 const minsToSave = diff * 10;
                 const today = getLocalDateString();
                 addMins(today, minsToSave);
                 updateTaskDuration(activeTaskId, minsToSave);
-                lastSavedChunksRef.current = chunks;
+                setTimerLastSavedChunks(chunks);
              }
            }
         }
@@ -109,13 +107,14 @@ export default function Timer() {
             const today = getLocalDateString();
             if (activeTaskId) {
                const elapsedSeconds = timerInitialMins * 60;
-               const finalUnsavedSeconds = elapsedSeconds - (lastSavedChunksRef.current * 600);
+               const finalUnsavedSeconds = elapsedSeconds - (timerLastSavedChunks * 600);
                const finalUnsavedMins = Math.round(finalUnsavedSeconds / 60);
                if (finalUnsavedMins > 0) {
                  addMins(today, finalUnsavedMins);
                  updateTaskDuration(activeTaskId, finalUnsavedMins);
                }
                setActiveTask(null, null);
+               setTimerLastSavedChunks(0);
             } else {
                addMins(today, timerInitialMins);
             }
@@ -131,11 +130,20 @@ export default function Timer() {
     }
 
     return () => clearInterval(interval);
-  }, [timerEndAt, timerInitialMins, addMins, setTimerEndAt, setTimerPausedLeft, setTimerInitialMins, showQuotePopup, activeTaskId, updateTaskDuration, setActiveTask]);
+  }, [timerEndAt, timerInitialMins, timerLastSavedChunks, addMins, setTimerEndAt, setTimerPausedLeft, setTimerInitialMins, setTimerLastSavedChunks, showQuotePopup, activeTaskId, updateTaskDuration, setActiveTask]);
 
   // Listen for timer triggers from other components
   useEffect(() => {
     if (timerTrigger) {
+      const state = useDashboardStore.getState();
+      if (timerTrigger.taskId && timerTrigger.taskId === state.activeTaskId) {
+        if (state.timerPausedLeft !== null) {
+          setTimerEndAt(Date.now() + state.timerPausedLeft * 1000);
+          setTimerPausedLeft(null);
+        }
+        return;
+      }
+
       // If we are triggering a new timer, save partial time of any currently running task timer
       saveAndClearActiveTaskTimer();
 
@@ -166,7 +174,7 @@ export default function Timer() {
     setTimerInitialMins(Math.round(seconds / 60));
     setTimerPausedLeft(null);
     setTimerEndAt(Date.now() + seconds * 1000);
-    lastSavedChunksRef.current = 0;
+    setTimerLastSavedChunks(0);
     stopAlarm();
   };
 
@@ -186,6 +194,7 @@ export default function Timer() {
     saveAndClearActiveTaskTimer();
     setTimerEndAt(null);
     setTimerPausedLeft(null);
+    setTimerInitialMins(null);
     stopAlarm();
   };
 

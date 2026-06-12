@@ -81,10 +81,12 @@ interface DashboardState {
   timerEndAt: number | null;
   timerPausedLeft: number | null; // Keeps track of remaining time if paused
   timerInitialMins: number | null;
+  timerLastSavedChunks: number;
   isAlarmPlaying: boolean;
   setTimerEndAt: (time: number | null) => void;
   setTimerPausedLeft: (time: number | null) => void;
   setTimerInitialMins: (mins: number | null) => void;
+  setTimerLastSavedChunks: (chunks: number) => void;
   setIsAlarmPlaying: (playing: boolean) => void;
 
   // Quotes State
@@ -304,10 +306,12 @@ export const useDashboardStore = create<DashboardState>()(
       timerEndAt: null,
       timerPausedLeft: null,
       timerInitialMins: null,
+      timerLastSavedChunks: 0,
       isAlarmPlaying: false,
       setTimerEndAt: (time) => set({ timerEndAt: time }),
       setTimerPausedLeft: (time) => set({ timerPausedLeft: time }),
       setTimerInitialMins: (mins) => set({ timerInitialMins: mins }),
+      setTimerLastSavedChunks: (chunks) => set({ timerLastSavedChunks: chunks }),
       setIsAlarmPlaying: (playing) => set({ isAlarmPlaying: playing }),
 
       currentQuote: null,
@@ -593,6 +597,28 @@ export const useDashboardStore = create<DashboardState>()(
           'isVideoMuted', 'isVideoPlaying', 'isSettingsOpen'
         ].includes(key))
       ),
+      merge: (persistedState: any, currentState: DashboardState) => {
+        // Clean up expired timers from past sessions
+        if (persistedState.timerEndAt && persistedState.timerEndAt < Date.now()) {
+          persistedState.timerEndAt = null;
+          persistedState.timerPausedLeft = null;
+          persistedState.timerInitialMins = null;
+          persistedState.activeTaskId = null;
+          persistedState.activeTaskTitle = null;
+        }
+        
+        // If the user quickly started a new timer before hydration finished, keep their new timer!
+        if (currentState.timerEndAt) {
+          persistedState.timerEndAt = currentState.timerEndAt;
+          persistedState.timerPausedLeft = currentState.timerPausedLeft;
+          persistedState.timerInitialMins = currentState.timerInitialMins;
+          persistedState.activeTaskId = currentState.activeTaskId;
+          persistedState.activeTaskTitle = currentState.activeTaskTitle;
+          persistedState.timerLastSavedChunks = currentState.timerLastSavedChunks;
+        }
+
+        return { ...currentState, ...persistedState };
+      },
     }
   )
 );
