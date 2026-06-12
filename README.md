@@ -1,5 +1,7 @@
 # 🚀 Personal Desktop Productivity Dashboard
 
+**Made with ❤️ for working more efficiently every single day.**
+
 > **A fully interactive, animated productivity system that runs as your Windows desktop wallpaper — powered by Next.js, SQLite, and Lively Wallpaper.**
 
 [![Next.js](https://img.shields.io/badge/Next.js-16.2.7-black?logo=next.js)](https://nextjs.org/)
@@ -619,7 +621,11 @@ Please follow the existing code style (TypeScript strict, functional React compo
 
 **Gonaboyina Anand Kumar**
 
-Built from scratch as a personal productivity tool that became a full-featured project. Every component, API, database schema, startup script, and automation was designed and implemented hands-on.
+This project started as a personal productivity experiment and grew into a full-featured desktop operating system. The **complete concept, product vision, feature design, and architecture decisions are entirely my own** — from the idea of running a Next.js app as a live wallpaper, to solving the WebView2 localStorage wipe problem, to the multi-profile system and wallpaper locking.
+
+The implementation was built with the assistance of **[Antigravity AI](https://antigravity.dev)** as an AI pair-programming tool, which helped accelerate writing component logic, API routes, and boilerplate code. This is similar to how a developer uses GitHub Copilot or ChatGPT to move faster — the thinking, the decisions, and the understanding remain mine. I have a working knowledge of full-stack web development (MERN stack, REST APIs, React state management, database design) and understand how each part of this project functions.
+
+> *Building something real and useful — even with great tools — is still building.*
 
 - 🔗 GitHub: [@anandgonaboyina](https://github.com/anandgonaboyina)
 - 💬 Telegram: Available via the dashboard Navbar
@@ -629,4 +635,4 @@ Built from scratch as a personal productivity tool that became a full-featured p
 
 > *"The secret of getting ahead is getting started."* — Mark Twain
 
-**Made with ❤️ for working more efficiently every single day.**
+**Built with passion, persistence, and a bit of AI magic — for working more efficiently every single day. 🚀**
