@@ -142,7 +142,7 @@ echo   ^</Triggers^>
 echo   ^<Principals^>
 echo     ^<Principal id="Author"^>
 echo       ^<LogonType^>InteractiveToken^</LogonType^>
-echo       ^<RunLevel^>HighestAvailable^</RunLevel^>
+echo       ^<RunLevel^>LeastPrivilege^</RunLevel^>
 echo     ^</Principal^>
 echo   ^</Principals^>
 echo   ^<Settings^>
@@ -178,15 +178,19 @@ echo   ^</Actions^>
 echo ^</Task^>
 ) > "%TASK_XML%"
 
-:: Register the task using XML and /RL HIGHEST
-schtasks /create /tn "ProductiveDashboard" /xml "%TASK_XML%" /f /RL HIGHEST
+:: Register the task using XML
+schtasks /create /tn "ProductiveDashboard" /xml "%TASK_XML%" /f
 if %errorlevel% neq 0 (
-    echo [INFO] Registering without /RL HIGHEST flag...
-    schtasks /create /tn "ProductiveDashboard" /xml "%TASK_XML%" /f
+    color 0C
+    echo ERROR: Failed to register Task Scheduler background task.
+    echo Please try right-clicking setup.bat and selecting "Run as Administrator".
+    del /f /q "%TASK_XML%"
+    pause
+    exit
 )
 del /f /q "%TASK_XML%"
 
-echo Task registered successfully with 3-strike retry policy and highest privileges!
+echo Task registered successfully with a 3-strike retry policy!
 
 echo.
 echo ========================================================
