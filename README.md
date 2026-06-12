@@ -16,28 +16,28 @@
 
 ## 📖 Table of Contents
 
-1. [What Is This?](#-what-is-this)
-2. [Live Demo / Screenshots](#-live-demo--screenshots)
-3. [Tech Stack & Architecture](#-tech-stack--architecture)
-4. [Project Structure](#-project-structure)
-5. [Automated 1-Click Setup](#-automated-1-click-setup)
-6. [Manual Developer Setup](#-manual-developer-setup)
-7. [Connecting to Lively Wallpaper](#-connecting-to-lively-wallpaper)
-8. [All Features Deep-Dive](#-all-features-deep-dive)
-9. [Database Schema](#-database-schema)
-10. [API Endpoints Reference](#-api-endpoints-reference)
-11. [State Management Architecture](#-state-management-architecture)
-12. [Wallpaper & Background System](#-wallpaper--background-system)
-13. [Automated Startup System](#-automated-startup-system)
-14. [Data Persistence & Reboot Safety](#-data-persistence--reboot-safety)
-15. [Multi-Profile System](#-multi-profile-system)
-16. [Known Quirks & Pro Tips](#-known-quirks--pro-tips)
-17. [Roadmap / Ideas](#-roadmap--ideas)
-18. [Contributing](#-contributing)
-19. [Author](#-author)
+1. [What Is This?](#what-is-this)
+2. [Tech Stack & Architecture](#tech-stack)
+3. [Project Structure](#project-structure)
+4. [Automated 1-Click Setup](#setup)
+5. [Manual Developer Setup](#manual-setup)
+6. [Connecting to Lively Wallpaper](#lively)
+7. [All Features Deep-Dive](#features)
+8. [Database Schema](#database)
+9. [API Endpoints Reference](#api)
+10. [State Management Architecture](#state)
+11. [Wallpaper & Background System](#wallpaper-system)
+12. [Automated Startup System](#startup)
+13. [Data Persistence & Reboot Safety](#persistence)
+14. [Multi-Profile System](#profiles)
+15. [Known Quirks & Pro Tips](#quirks)
+16. [Roadmap / Ideas](#roadmap)
+17. [Contributing](#contributing)
+18. [Author](#author)
 
 ---
 
+<a id="what-is-this"></a>
 ## 🤔 What Is This?
 
 This project turns your **Windows desktop into a fully interactive productivity operating system**. Instead of a static wallpaper, your desktop shows a live Next.js web app — complete with animated widgets, a real database, and full interactivity — rendered inside [Lively Wallpaper](https://github.com/rocksdanister/lively) using its built-in WebView2 (Chromium) engine.
@@ -52,6 +52,7 @@ This project turns your **Windows desktop into a fully interactive productivity 
 
 ---
 
+<a id="tech-stack"></a>
 ## 🛠️ Tech Stack & Architecture
 
 | Layer | Technology | Why |
@@ -94,6 +95,7 @@ This project turns your **Windows desktop into a fully interactive productivity 
 
 ---
 
+<a id="project-structure"></a>
 ## 📁 Project Structure
 
 ```
@@ -153,6 +155,7 @@ productivedashboard/
 
 ---
 
+<a id="setup"></a>
 ## ⚡ Automated 1-Click Setup
 
 > **You do NOT need to be a developer to use this.** The setup script handles everything.
@@ -183,6 +186,7 @@ productivedashboard/
 
 ---
 
+<a id="manual-setup"></a>
 ## 🧑‍💻 Manual Developer Setup
 
 If you want to run this in development mode and modify the code:
@@ -216,6 +220,7 @@ npm run start   # Starts production server at http://localhost:4321
 
 ---
 
+<a id="lively"></a>
 ## 🎨 Connecting to Lively Wallpaper
 
 Once the server is running at `http://localhost:4321`:
@@ -230,6 +235,7 @@ Your desktop is now a live, interactive productivity dashboard. All clicks, drag
 
 ---
 
+<a id="features"></a>
 ## 🎯 All Features Deep-Dive
 
 ### 🎥 Dynamic Video & Image Wallpapers
@@ -389,6 +395,7 @@ A sleek top navigation bar with one-click launchers for:
 
 ---
 
+<a id="database"></a>
 ## 🗄️ Database Schema
 
 ```prisma
@@ -424,6 +431,7 @@ model HealthRecord {
 
 ---
 
+<a id="api"></a>
 ## 🔌 API Endpoints Reference
 
 | Method | Endpoint | Description |
@@ -445,6 +453,7 @@ model HealthRecord {
 
 ---
 
+<a id="state"></a>
 ## 🧠 State Management Architecture
 
 The state management is one of the most technically interesting parts of this project, specifically built to solve the **Lively Wallpaper / WebView2 localStorage wipe problem**.
@@ -500,6 +509,7 @@ Everything else — tasks, notes, plans, wallpaper preference, widget positions,
 
 ---
 
+<a id="wallpaper-system"></a>
 ## 🖼️ Wallpaper & Background System
 
 The background system (`VideoBackground.tsx`) is reactive and intelligent:
@@ -513,6 +523,7 @@ The background system (`VideoBackground.tsx`) is reactive and intelligent:
 
 ---
 
+<a id="startup"></a>
 ## 🚀 Automated Startup System
 
 The dashboard uses a two-script VBScript system to start silently on Windows boot:
@@ -540,6 +551,7 @@ Both scripts are registered as **Windows Task Scheduler tasks** with:
 
 ---
 
+<a id="persistence"></a>
 ## 🔒 Data Persistence & Reboot Safety
 
 | Data Type | Storage Location | Survives Reboot? |
@@ -556,6 +568,7 @@ Both scripts are registered as **Windows Task Scheduler tasks** with:
 
 ---
 
+<a id="profiles"></a>
 ## 👥 Multi-Profile System
 
 The dashboard supports multiple completely isolated user profiles ("Workspaces"):
@@ -573,6 +586,7 @@ The dashboard supports multiple completely isolated user profiles ("Workspaces")
 
 ---
 
+<a id="quirks"></a>
 ## 🕵️ Known Quirks & Pro Tips
 
 ### Lively Wallpaper Focus Bug
@@ -591,6 +605,7 @@ Browsers require user interaction before playing audio. When a video wallpaper f
 
 ---
 
+<a id="roadmap"></a>
 ## 🗺️ Roadmap / Ideas
 
 - [ ] **AI Voice Assistant** — Gemini-powered voice interface with avatar overlay
@@ -604,6 +619,7 @@ Browsers require user interaction before playing audio. When a video wallpaper f
 
 ---
 
+<a id="contributing"></a>
 ## 🤝 Contributing
 
 Contributions, bug reports, and feature suggestions are very welcome!
@@ -617,6 +633,7 @@ Please follow the existing code style (TypeScript strict, functional React compo
 
 ---
 
+<a id="author"></a>
 ## 👨‍💻 Author
 
 **Gonaboyina Anand Kumar**
