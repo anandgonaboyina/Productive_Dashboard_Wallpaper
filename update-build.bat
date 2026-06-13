@@ -14,7 +14,7 @@ if %errorLevel% == 0 (
 
 :run_update
 (
-:: Ensure we are in the script's directory
+REM Ensure we are in the script's directory
 cd /d "%~dp0"
 
 echo ============================================================================
@@ -45,7 +45,7 @@ if %errorLevel% neq 0 (
         exit /b 1
     )
     echo Git installed successfully!
-    :: Temporarily add Git to the current session's PATH so the script can continue immediately
+    REM Temporarily add Git to the current session's PATH so the script can continue immediately
     set "PATH=%PATH%;C:\Program Files\Git\cmd"
 ) else (
     echo Git is already installed.
