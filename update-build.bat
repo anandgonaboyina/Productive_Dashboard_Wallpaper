@@ -96,9 +96,11 @@ echo.
 echo =======================================================
 echo UPDATE COMPLETE AND BUILT SUCCESSFULLY!
 echo =======================================================
-echo The server is currently offline. 
-echo PLEASE RESTART YOUR PC NOW to start the updated dashboard.
+echo Rebooting the background server now...
+start wscript "start-server.vbs"
 echo.
-echo This window will close automatically in 10 seconds...
-timeout /t 10 >nul
+echo Server is starting up in the background!
+echo You can now close this window. Your dashboard will refresh automatically
+echo once the server comes online (usually 10-15 seconds).
+timeout /t 10
 exit /b 0
