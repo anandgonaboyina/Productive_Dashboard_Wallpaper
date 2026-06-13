@@ -11,8 +11,8 @@ const DEFAULT_WALLPAPERS = [
 ];
 
 export default function SettingsModal() {
-  const { isSettingsOpen, toggleSettings, is24HourClock, toggle24HourClock, currentBgSrc, hiddenWallpapers, toggleWallpaperVisibility, showHealth, showQuote, showTimer, showCountdowns, showVideoControls, showClock, showTasks, showCalendar, showTodayWork, showStats, showPlans, showNotes, showTimetable, showDock, showDeadlineAlerts, showBgSwitcher, showSettingsBtn, showStopwatch, toggleVisibility, isSlideshowEnabled, setIsSlideshowEnabled, slideshowIntervalMins, setSlideshowIntervalMins, lockedWidgets, toggleWidgetLock, resetAllOffsets, clearOldData, clearAllData, lockedWallpaper, setLockedWallpaper, deadlineAlertDays, setDeadlineAlertDays, hideConfig, setHideConfig, setHideAll, rightWidgetsOffset, setRightWidgetsOffset, alarmSound, setAlarmSound, alarmDurationSecs, setAlarmDurationSecs, alarmVolume, setAlarmVolume } = useDashboardStore();
-  const [activeTab, setActiveTab] = useState<'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about' | 'update' | 'focus' | 'sound'>('wallpapers');
+  const { settingsActiveTab, setSettingsActiveTab, isSettingsOpen, toggleSettings, is24HourClock, toggle24HourClock, currentBgSrc, hiddenWallpapers, toggleWallpaperVisibility, showHealth, showQuote, showTimer, showCountdowns, showVideoControls, showClock, showTasks, showCalendar, showTodayWork, showStats, showPlans, showNotes, showTimetable, showDock, showDeadlineAlerts, showBgSwitcher, showSettingsBtn, showStopwatch, toggleVisibility, isSlideshowEnabled, setIsSlideshowEnabled, slideshowIntervalMins, setSlideshowIntervalMins, lockedWidgets, toggleWidgetLock, resetAllOffsets, clearOldData, clearAllData, lockedWallpaper, setLockedWallpaper, deadlineAlertDays, setDeadlineAlertDays, hideConfig, setHideConfig, setHideAll, rightWidgetsOffset, setRightWidgetsOffset, alarmSound, setAlarmSound, alarmDurationSecs, setAlarmDurationSecs, alarmVolume, setAlarmVolume } = useDashboardStore();
+  
   const [deleteDays, setDeleteDays] = useState<number>(60);
   const upiId = 'gonaboyinaanandkumar@ybl';
 
@@ -388,57 +388,57 @@ export default function SettingsModal() {
           {/* Sidebar Tabs */}
           <div className="w-64 bg-black/20 border-r border-white/10 p-4 flex flex-col gap-2">
             <button
-              onClick={() => setActiveTab('wallpapers')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'wallpapers' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
+              onClick={() => setSettingsActiveTab('wallpapers')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${settingsActiveTab === 'wallpapers' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
               <ImageIcon size={20} />
               Wallpapers
             </button>
             <button
-              onClick={() => setActiveTab('preferences')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'preferences' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
+              onClick={() => setSettingsActiveTab('preferences')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${settingsActiveTab === 'preferences' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
               <MonitorPlay size={20} />
               Preferences
             </button>
             <button
-              onClick={() => setActiveTab('sound')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'sound' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
+              onClick={() => setSettingsActiveTab('sound')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${settingsActiveTab === 'sound' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
               <Bell size={20} />
               Sound Settings
             </button>
             <button
-              onClick={() => setActiveTab('profiles')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'profiles' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
+              onClick={() => setSettingsActiveTab('profiles')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${settingsActiveTab === 'profiles' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
               <Users size={20} />
               Workspaces
             </button>
             <button
-              onClick={() => setActiveTab('focus')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'focus' ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
+              onClick={() => setSettingsActiveTab('focus')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${settingsActiveTab === 'focus' ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
               <EyeOff size={20} />
               Focus / Panic Mode
             </button>
             <button
-              onClick={() => setActiveTab('data')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'data' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
+              onClick={() => setSettingsActiveTab('data')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${settingsActiveTab === 'data' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
               <Database size={20} />
               Data & Backup
             </button>
             <button
-              onClick={() => setActiveTab('update')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'update' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
+              onClick={() => setSettingsActiveTab('update')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${settingsActiveTab === 'update' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
               <RefreshCw size={20} />
               Dashboard Update
             </button>
             <button
-              onClick={() => setActiveTab('about')}
-              className={`flex flex-col items-center justify-center gap-2 px-4 py-6 rounded-2xl transition-all font-medium mt-auto w-full ${activeTab === 'about' ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-white border border-blue-500/30 shadow-lg' : 'bg-black/20 text-white/60 hover:bg-white/5 hover:text-white border border-white/5'}`}
+              onClick={() => setSettingsActiveTab('about')}
+              className={`flex flex-col items-center justify-center gap-2 px-4 py-6 rounded-2xl transition-all font-medium mt-auto w-full ${settingsActiveTab === 'about' ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-white border border-blue-500/30 shadow-lg' : 'bg-black/20 text-white/60 hover:bg-white/5 hover:text-white border border-white/5'}`}
             >
               <img
                 src="/branding/author.jpeg"
@@ -464,7 +464,7 @@ export default function SettingsModal() {
               onWheel={(e) => { e.stopPropagation(); e.currentTarget.scrollTop += e.deltaY; }}
             >
 
-              {activeTab === 'profiles' && (
+              {settingsActiveTab === 'profiles' && (
                 <div className="flex flex-col gap-6">
                   <div>
                     <h3 className="text-xl font-semibold">Workspaces</h3>
@@ -535,7 +535,7 @@ export default function SettingsModal() {
                 </div>
               )}
 
-              {activeTab === 'wallpapers' && (
+              {settingsActiveTab === 'wallpapers' && (
                 <div className="flex flex-col gap-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -702,7 +702,7 @@ export default function SettingsModal() {
                 </div>
               )}
 
-              {activeTab === 'preferences' && (
+              {settingsActiveTab === 'preferences' && (
                 <div className="flex flex-col gap-6">
                   <div>
                     <h3 className="text-xl font-semibold">General Preferences</h3>
@@ -1084,7 +1084,7 @@ export default function SettingsModal() {
                 </div>
               )}
 
-              {activeTab === 'sound' && (
+              {settingsActiveTab === 'sound' && (
                 <div className="flex flex-col gap-6">
                   <div>
                     <h3 className="text-xl font-semibold flex items-center gap-2">
@@ -1189,7 +1189,7 @@ export default function SettingsModal() {
                 </div>
               )}
 
-              {activeTab === 'focus' && (
+              {settingsActiveTab === 'focus' && (
                 <div className="flex flex-col gap-6">
                   <div>
                     <h3 className="text-xl font-semibold flex items-center gap-2"><EyeOff className="text-red-400" /> Focus & Panic Mode</h3>
@@ -1259,7 +1259,7 @@ export default function SettingsModal() {
                 </div>
               )}
 
-              {activeTab === 'data' && (
+              {settingsActiveTab === 'data' && (
                 <div className="flex flex-col gap-6">
                   <div>
                     <h3 className="text-xl font-semibold">Data & Backup</h3>
@@ -1380,7 +1380,7 @@ export default function SettingsModal() {
                 </div>
               )}
 
-              {activeTab === 'about' && (
+              {settingsActiveTab === 'about' && (
                 <div className="flex flex-col">
                   <div>
                     <h3 className="text-xl font-semibold">About Developer</h3>
@@ -1524,7 +1524,7 @@ export default function SettingsModal() {
                 </div>
               )}
 
-              {activeTab === 'update' && (
+              {settingsActiveTab === 'update' && (
                 <div className="flex flex-col gap-6 animate-in fade-in duration-300">
                   <div>
                     <h3 className="text-xl font-semibold flex items-center gap-2">
@@ -1566,11 +1566,13 @@ export default function SettingsModal() {
                             <p className="text-sm font-bold text-red-400 mb-1">
                               WARNING: You are about to update the dashboard!
                             </p>
-                            <p className="text-xs text-white/70 mb-3 leading-relaxed">
+                            <p className="text-xs text-white/70 mb-3 leading-relaxed break-words text-wrap">
                               Applying this update will temporarily stop your server in the background to safely rebuild the source code. The dashboard will automatically restart once finished.
+                              <br /><br />
+                              <span className="text-orange-400 font-semibold">RECOMMENDATION:</span> Please go to the <strong>Data & Backup</strong> tab and click <strong>Export Data</strong> before updating. While rare, updates to the database schema can occasionally wipe your current tasks and notes.
                             </p>
                             <div className="flex items-center gap-3 mt-2">
-                              <span className="text-xs font-semibold text-white/50 uppercase tracking-widest whitespace-nowrap">Click "Update Now" to begin the seamless background update.</span>
+                              <span className="text-xs font-semibold text-white/50 uppercase tracking-wider break-words text-wrap">Click "Update Now" to begin the seamless background update.</span>
                             </div>
                           </div>
                         </div>

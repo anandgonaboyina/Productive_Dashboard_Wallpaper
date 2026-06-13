@@ -76,7 +76,9 @@ interface DashboardState {
   isStatsOpen: boolean;
   toggleStats: () => void;
   isSettingsOpen: boolean;
+  settingsActiveTab: 'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about' | 'update' | 'focus' | 'sound';
   toggleSettings: () => void;
+  setSettingsActiveTab: (tab: 'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about' | 'update' | 'focus' | 'sound') => void;
   timerTrigger: { mins: number; ts: number; taskId?: string; taskTitle?: string } | null;
   triggerTimer: (mins: number, taskId?: string, taskTitle?: string) => void;
 
@@ -393,7 +395,9 @@ export const useDashboardStore = create<DashboardState>()(
       isStatsOpen: false,
       toggleStats: () => set((state) => ({ isStatsOpen: !state.isStatsOpen })),
       isSettingsOpen: false,
+      settingsActiveTab: 'wallpapers',
       toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
+      setSettingsActiveTab: (tab) => set({ settingsActiveTab: tab }),
       timerTrigger: null,
       triggerTimer: (mins, taskId, taskTitle) => set({ timerTrigger: { mins, ts: Date.now(), taskId, taskTitle } }),
 
