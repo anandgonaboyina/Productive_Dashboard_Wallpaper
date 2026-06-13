@@ -79,6 +79,7 @@ if exist "prisma\dev.db.backup" (
 
 echo.
 echo [5/5] REBUILDING DASHBOARD SOURCE CODE...
+if exist ".next" rmdir /s /q ".next"
 call npm run build
 if %errorLevel% neq 0 (
     color 0C
