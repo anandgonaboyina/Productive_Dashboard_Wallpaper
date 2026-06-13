@@ -32,18 +32,34 @@ echo                   PRODUCTIVE DASHBOARD - SYSTEM UPDATER
 echo ============================================================================
 echo.
 
-echo [1/3] STOPPING BACKGROUND SERVER...
+echo [1/4] STOPPING BACKGROUND SERVER...
 call npx -y kill-port 4321
 echo Server stopped.
 
 echo.
-echo [2/3] PULLING LATEST UPDATE FROM GITHUB...
+echo [2/4] BACKING UP DATABASE TO PREVENT DATA LOSS...
+if exist "prisma\dev.db" (
+    copy /y prisma\dev.db prisma\dev.db.backup >nul
+    echo Database backed up safely.
+) else (
+    echo No database found to backup.
+)
+
+echo.
+echo [3/4] PULLING LATEST UPDATE FROM GITHUB...
 call git fetch origin
 call git reset --hard origin/main
 echo Update pulled successfully.
 
 echo.
-echo [3/3] REBUILDING DASHBOARD SOURCE CODE...
+echo [4/4] RESTORING DATABASE...
+if exist "prisma\dev.db.backup" (
+    copy /y prisma\dev.db.backup prisma\dev.db >nul
+    echo Database restored successfully.
+)
+
+echo.
+echo [5/5] REBUILDING DASHBOARD SOURCE CODE...
 call npm run build
 if %errorLevel% neq 0 (
     color 0C
