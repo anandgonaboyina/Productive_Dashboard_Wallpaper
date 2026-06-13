@@ -78,7 +78,7 @@ export default function Countdown({ id }: { id: string }) {
   const hasTime = examCountdown.endDate && examCountdown.endDate.includes('T') && examCountdown.endDate.split('T')[1] !== '';
 
   return (
-    <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-3 shadow-2xl w-80 pointer-events-auto">
+    <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-3 shadow-2xl w-80 pointer-events-auto select-none">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-white/80 cursor-grab active:cursor-grabbing">
           <Clock size={18} className="text-blue-400" />

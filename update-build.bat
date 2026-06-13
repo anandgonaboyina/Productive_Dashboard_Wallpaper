@@ -32,12 +32,31 @@ echo                   PRODUCTIVE DASHBOARD - SYSTEM UPDATER
 echo ============================================================================
 echo.
 
-echo [1/4] STOPPING BACKGROUND SERVER...
+echo CHECKING DEPENDENCIES...
+git --version >nul 2>&1
+if %errorLevel% neq 0 (
+    echo Git is missing! Installing Git automatically via winget...
+    winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+    if %errorLevel% neq 0 (
+        echo ERROR: Failed to install Git automatically.
+        echo Please install it manually from https://git-scm.com/ and try again.
+        pause
+        exit /b 1
+    )
+    echo Git installed successfully!
+    :: Temporarily add Git to the current session's PATH so the script can continue immediately
+    set "PATH=%PATH%;C:\Program Files\Git\cmd"
+) else (
+    echo Git is already installed.
+)
+
+echo.
+echo [1/5] STOPPING BACKGROUND SERVER...
 call npx -y kill-port 4321
 echo Server stopped.
 
 echo.
-echo [2/4] BACKING UP DATABASE TO PREVENT DATA LOSS...
+echo [2/5] BACKING UP DATABASE TO PREVENT DATA LOSS...
 if exist "prisma\dev.db" (
     copy /y prisma\dev.db prisma\dev.db.backup >nul
     echo Database backed up safely.
@@ -46,13 +65,13 @@ if exist "prisma\dev.db" (
 )
 
 echo.
-echo [3/4] PULLING LATEST UPDATE FROM GITHUB...
+echo [3/5] PULLING LATEST UPDATE FROM GITHUB...
 call git fetch origin
 call git reset --hard origin/main
 echo Update pulled successfully.
 
 echo.
-echo [4/4] RESTORING DATABASE...
+echo [4/5] RESTORING DATABASE...
 if exist "prisma\dev.db.backup" (
     copy /y prisma\dev.db.backup prisma\dev.db >nul
     echo Database restored successfully.

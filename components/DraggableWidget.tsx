@@ -78,7 +78,7 @@ export default function DraggableWidget({ id, children }: { id: string, children
         touchAction: 'none',
         userSelect: isDragging ? 'none' : 'auto'
       }}
-      className={`pointer-events-auto outline-none focus:outline-none transition-transform duration-75 ${lockedWidgets.includes(id) ? '' : 'hover:outline hover:outline-1 hover:outline-white/10 rounded-3xl'}`}
+      className={`w-fit h-fit pointer-events-auto outline-none focus:outline-none transition-transform duration-75 ${lockedWidgets.includes(id) ? '' : 'hover:outline hover:outline-1 hover:outline-white/10 rounded-3xl'}`}
     >
       {children}
     </div>

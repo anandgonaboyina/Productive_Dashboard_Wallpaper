@@ -54,22 +54,42 @@ echo.
 pause
 
 echo.
-echo [1/5] Checking for Node.js...
+echo [1/5] Checking Dependencies (Node.js ^& Git)...
+
+:: Check Node.js
 node -v >nul 2>&1
 if %errorlevel% neq 0 (
     echo Node.js is not installed. Installing via Winget...
-    winget install OpenJS.NodeJS -e --source winget
-    
-    echo.
-    echo ========================================================
-    echo IMPORTANT: Node.js has been installed!
-    echo However, Windows needs to refresh its environment variables.
-    echo Please CLOSE this window, and RUN setup.bat as Administrator again.
-    echo ========================================================
-    pause
-    exit
+    winget install OpenJS.NodeJS -e --source winget --accept-package-agreements --accept-source-agreements
+    if %errorlevel% neq 0 (
+        echo ERROR: Failed to install Node.js automatically.
+        echo Please install it manually from https://nodejs.org/ and try again.
+        pause
+        exit /b 1
+    )
+    echo Node.js installed successfully!
+    :: Temporarily add Node to the current session's PATH so the script can continue immediately
+    set "PATH=%PATH%;C:\Program Files\nodejs"
 ) else (
     echo Node.js is already installed!
+)
+
+:: Check Git
+git --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Git is not installed. Installing via Winget...
+    winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+    if %errorlevel% neq 0 (
+        echo ERROR: Failed to install Git automatically.
+        echo Please install it manually from https://git-scm.com/ and try again.
+        pause
+        exit /b 1
+    )
+    echo Git installed successfully!
+    :: Temporarily add Git to the current session's PATH so the script can continue immediately
+    set "PATH=%PATH%;C:\Program Files\Git\cmd"
+) else (
+    echo Git is already installed!
 )
 
 echo.

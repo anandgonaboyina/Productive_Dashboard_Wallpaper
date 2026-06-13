@@ -81,16 +81,19 @@ export default function TaskManager() {
                             </div>
                         ) : (
                             <div className="flex flex-col gap-2">
-                                {tasks.map((task) => (
+                                {tasks.map((task, index) => (
                                     <div
                                         key={task.id}
                                         className={`group flex items-start justify-between p-3 rounded-2xl border border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10 transition-all shadow-sm ${task.completed ? 'opacity-50' : ''}`}
                                     >
-                                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                                            <button onClick={() => handleToggleTask(task.id)} className="shrink-0 text-white/60 hover:text-white transition-colors">
-                                                {task.completed ? <CheckCircle size={20} className="text-green-400" /> : <Circle size={20} />}
-                                            </button>
-                                            <div className="flex flex-col gap-1.5 flex-1 min-w-0 w-full">
+                                        <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mt-[2px] shrink-0">
+                                                <span className="text-[13px] font-bold text-white/40 tabular-nums w-5 text-right select-none">{index + 1}.</span>
+                                                <button onClick={() => handleToggleTask(task.id)} className="text-white/60 hover:text-white transition-colors">
+                                                    {task.completed ? <CheckCircle size={18} className="text-green-400" /> : <Circle size={18} />}
+                                                </button>
+                                            </div>
+                                            <div className="flex flex-col gap-1.5 flex-1 min-w-0 w-full ml-0.5">
                                                 <textarea
                                                     ref={(el) => {
                                                         if (el) {

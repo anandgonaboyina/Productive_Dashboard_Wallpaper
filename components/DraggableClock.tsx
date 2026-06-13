@@ -67,7 +67,7 @@ export default function DraggableClock({ children }: { children: React.ReactNode
 
   return (
     <div 
-      className={`relative inline-block w-fit h-fit pointer-events-auto outline-none focus:outline-none transition-transform ${!isDragging ? 'duration-300' : 'duration-0'} ${lockedWidgets.includes('clock') ? '' : 'cursor-move'} group`}
+      className={`relative inline-block w-fit h-fit p-8 pointer-events-auto outline-none focus:outline-none transition-transform ${!isDragging ? 'duration-300' : 'duration-0'} ${lockedWidgets.includes('clock') ? '' : 'cursor-move'} group`}
       style={{ 
         transform: `translate(${position.x}px, ${position.y}px)`,
         touchAction: 'none',

@@ -16,6 +16,8 @@ export default function VideoBackground() {
   const isVideoPlaying = useDashboardStore((state) => state.isVideoPlaying);
   const setIsVideoPlaying = useDashboardStore((state) => state.setIsVideoPlaying);
   const showVideoControls = useDashboardStore((state) => state.showVideoControls);
+  const isHidden = useDashboardStore((state) => state.isHidden);
+  const hideConfig = useDashboardStore((state) => state.hideConfig);
 
   const isSlideshowEnabled = useDashboardStore((state) => state.isSlideshowEnabled);
   const slideshowIntervalMins = useDashboardStore((state) => state.slideshowIntervalMins);
@@ -143,7 +145,7 @@ export default function VideoBackground() {
             }}
           />
           {/* Controls */}
-          {showVideoControls && (
+          {(!isHidden || !hideConfig.videoControls) && showVideoControls && (
             <>
               <div className="absolute top-6 left-20 z-50 flex gap-2">
                 {/* Play/Pause Toggle Button */}

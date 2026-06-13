@@ -44,8 +44,8 @@ export default function HealthRings() {
     const getCircumference = (radius: number) => 2 * Math.PI * radius;
 
     return (
-        <div className="relative group pointer-events-auto">
-            <div className="bg-black/20 backdrop-blur-3xl border border-white/10 rounded-3xl p-1 shadow-2xl flex flex-col items-center gap-4 transition-all duration-300 hover:bg-black/30 w-[300px]">
+        <div className="relative group pointer-events-auto select-none">
+            <div className="bg-black/20 backdrop-blur-3xl border border-white/10 rounded-3xl p-1 shadow-2xl flex flex-col items-center gap-4 transition-colors duration-300 hover:bg-black/30 w-[300px]">
 
                 {/* Rings Container */}
                 <div className="relative w-36 h-36 cursor-pointer" onClick={toggleHealthModal} title="View Health History">
@@ -119,7 +119,7 @@ export default function HealthRings() {
                         title="Drink Water (+1 glass)"
                     >
                         <Droplet size={14} />
-                        <span>{todayData.water}/{TARGETS.water}</span>
+                        <span className="tabular-nums">{todayData.water}/{TARGETS.water}</span>
                     </button>
                     <button
                         onClick={() => updateHealth(todayKey, 'stretch', 1)}
@@ -127,7 +127,7 @@ export default function HealthRings() {
                         title="Stretch Session (+1 session)"
                     >
                         <Activity size={14} />
-                        <span>{todayData.stretch}/{TARGETS.stretch}</span>
+                        <span className="tabular-nums">{todayData.stretch}/{TARGETS.stretch}</span>
                     </button>
                     <button
                         onClick={() => updateHealth(todayKey, 'reading', 15)}
@@ -135,7 +135,7 @@ export default function HealthRings() {
                         title="Read/Screen Time (+15 mins)"
                     >
                         <BookOpen size={14} />
-                        <span>{formatMinutes(todayData.reading)}</span>
+                        <span className="tabular-nums">{formatMinutes(todayData.reading)}</span>
                     </button>
                     <button
                         onClick={() => updateHealth(todayKey, 'academic', 30)}
@@ -143,7 +143,7 @@ export default function HealthRings() {
                         title="Study (+30 mins)"
                     >
                         <GraduationCap size={14} />
-                        <span>{formatMinutes(todayData.academic)}</span>
+                        <span className="tabular-nums">{formatMinutes(todayData.academic)}</span>
                     </button>
                     <button
                         onClick={() => updateHealth(todayKey, 'english', 1)}
@@ -151,7 +151,7 @@ export default function HealthRings() {
                         title="English Vocab (+1 word)"
                     >
                         <MessageCircle size={14} />
-                        <span>{todayData.english}/{TARGETS.english}</span>
+                        <span className="tabular-nums">{todayData.english}/{TARGETS.english}</span>
                     </button>
                 </div>
 

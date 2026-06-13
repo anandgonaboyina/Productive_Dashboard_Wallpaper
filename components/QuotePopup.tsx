@@ -8,6 +8,9 @@ export default function QuotePopup() {
   const { currentQuote, isQuotePopupOpen, hideQuotePopup, showQuotePopup } = useDashboardStore();
 
   const handleNextQuote = async () => {
+    if (window.getSelection()?.toString().trim().length) {
+      return; // Do not change quote if user is selecting text
+    }
     const q = await fetchQuote();
     showQuotePopup(q);
   };
@@ -19,7 +22,7 @@ export default function QuotePopup() {
       <DraggableWidget id="quote">
         <div className="relative py-3 px-4 text-white overflow-hidden group text-center drop-shadow-2xl bg-black/20 backdrop-blur-sm border border-white/10 rounded-2xl w-fit max-w-[50vw] mx-auto">
           <div
-            className="relative z-10 cursor-pointer hover:opacity-80 transition-opacity pointer-events-auto inline-block w-full"
+            className="relative z-10 cursor-pointer hover:opacity-80 transition-opacity pointer-events-auto inline-block w-full select-text"
             onClick={handleNextQuote}
             title="Click for another quote"
           >

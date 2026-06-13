@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Trash, ListTodo, Calendar as CalendarIcon } from 'lucide-react';
 import { useDashboardStore } from '@/store/dashboardStore';
+import DraggableWidget from './DraggableWidget';
 
 export default function MiniCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -42,7 +43,8 @@ export default function MiniCalendar() {
   const sortedAllDeadlines = [...deadlines].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 w-72 shadow-2xl min-h-[340px] flex flex-col relative overflow-hidden transition-all duration-300">
+    <DraggableWidget id="calendar">
+    <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-5 w-72 shadow-2xl min-h-[340px] flex flex-col relative overflow-hidden transition-all duration-300 select-none">
       {showAllDeadlines ? (
         <div className="flex flex-col h-full flex-1 animate-in slide-in-from-right-4 duration-300">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/10">
@@ -71,12 +73,12 @@ export default function MiniCalendar() {
               <div key={d.id} className="flex flex-col gap-1 bg-white/5 hover:bg-white/10 p-3 rounded-xl border border-white/10 transition-colors group">
                 <div className="flex justify-between items-center">
                   <span className="text-red-400 text-xs font-bold tracking-wider">{d.date}</span>
-                  <button 
+                  <button
                     onClick={() => {
                       if (window.confirm('Are you sure you want to delete this deadline?')) {
                         deleteDeadline(d.id);
                       }
-                    }} 
+                    }}
                     style={{ marginRight: '5px' }}
                     className="text-red-400/80 bg-red-500/10 hover:bg-red-500/20 hover:text-red-300 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all shrink-0"
                   >
@@ -126,12 +128,12 @@ export default function MiniCalendar() {
                   placeholder="Enter deadline here..."
                   autoFocus
                 />
-                <button 
+                <button
                   onClick={() => {
                     if (window.confirm('Are you sure you want to delete this deadline?')) {
                       deleteDeadline(d.id);
                     }
-                  }} 
+                  }}
                   style={{ marginRight: '5px' }}
                   className="text-red-400/80 bg-red-500/10 hover:bg-red-500/20 hover:text-red-300 p-1.5 rounded-md transition-all shrink-0 opacity-0 group-hover:opacity-100"
                 >
@@ -224,5 +226,6 @@ export default function MiniCalendar() {
         </div>
       )}
     </div>
+    </DraggableWidget>
   );
 }
