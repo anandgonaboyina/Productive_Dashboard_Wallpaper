@@ -59,15 +59,18 @@ echo [1/5] Checking Dependencies (Node.js ^& Git)...
 :: Check Node.js
 node -v >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Node.js is not installed. Installing via Winget...
-    winget install OpenJS.NodeJS -e --source winget --accept-package-agreements --accept-source-agreements
+    echo Node.js is not installed. Downloading Official Installer...
+    curl -o node-installer.msi https://nodejs.org/dist/v20.14.0/node-v20.14.0-x64.msi
     if %errorlevel% neq 0 (
-        echo ERROR: Failed to install Node.js automatically.
-        echo Please install it manually from https://nodejs.org/ and try again.
+        echo ERROR: Failed to download Node.js. Check your internet connection.
         pause
         exit /b 1
     )
+    echo Installing Node.js silently (this may take a minute)...
+    msiexec /i node-installer.msi /quiet /qn /norestart
     echo Node.js installed successfully!
+    del node-installer.msi
+    
     :: Temporarily add Node to the current session's PATH so the script can continue immediately
     set "PATH=%PATH%;C:\Program Files\nodejs"
 ) else (
@@ -77,15 +80,18 @@ if %errorlevel% neq 0 (
 :: Check Git
 git --version >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Git is not installed. Installing via Winget...
-    winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+    echo Git is not installed. Downloading Official Installer...
+    curl -L -o git-installer.exe https://github.com/git-for-windows/git/releases/download/v2.45.2.windows.1/Git-2.45.2-64-bit.exe
     if %errorlevel% neq 0 (
-        echo ERROR: Failed to install Git automatically.
-        echo Please install it manually from https://git-scm.com/ and try again.
+        echo ERROR: Failed to download Git. Check your internet connection.
         pause
         exit /b 1
     )
+    echo Installing Git silently...
+    git-installer.exe /VERYSILENT /NORESTART /NOCANCEL /SP-
     echo Git installed successfully!
+    del git-installer.exe
+    
     :: Temporarily add Git to the current session's PATH so the script can continue immediately
     set "PATH=%PATH%;C:\Program Files\Git\cmd"
 ) else (

@@ -103,8 +103,8 @@ echo Rebooting the background server now...
 start wscript "start-server.vbs" "nowait"
 echo.
 echo Server is starting up in the background!
-echo Waiting 5 seconds before starting Lively Wallpaper...
-timeout /t 5
+echo Waiting 10 seconds before starting Lively Wallpaper...
+timeout /t 10
 start wscript "start-lively.vbs" "nowait"
 echo.
 echo Lively Wallpaper has been started. Update complete!
