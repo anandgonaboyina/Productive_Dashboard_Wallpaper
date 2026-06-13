@@ -9,7 +9,7 @@ if %errorLevel% == 0 (
 ) else (
     echo Requesting Administrator Privileges...
     powershell -Command "Start-Process '%~f0' -Verb RunAs"
-    exit /b
+    exit
 )
 
 :run_update
@@ -104,5 +104,5 @@ echo Server is starting up in the background!
 echo Please REFRESH your Dashboard (or right-click Reload in Lively Wallpaper)
 echo in about 10 to 20 seconds once the server comes online.
 timeout /t 10
-exit /b 0
+exit
 )
