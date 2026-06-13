@@ -1065,7 +1065,37 @@ export default function SettingsModal() {
                     </div>
                   </div>
 
-                  {/* Support section removed per user request */}
+                  <div className="flex flex-col p-6 bg-black/20 border border-white/5 rounded-3xl mt-2 text-center items-center justify-center relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-3xl rounded-full" />
+                    <h3 className="text-xl font-bold mb-2">Support the Project ❤️</h3>
+                    <p className="text-sm text-white/60 max-w-md mx-auto mb-6">
+                      If you find this dashboard useful and want to support further development, 
+                      consider buying me a coffee!
+                    </p>
+                    
+                    <div className="flex flex-col sm:flex-row items-center gap-8 bg-white/5 p-6 rounded-2xl border border-white/10">
+                      <div className="bg-white p-3 rounded-2xl shadow-xl hover:scale-105 transition-transform">
+                        <QRCodeSVG 
+                          value={`upi://pay?pa=${upiId}&pn=Anand%20Kumar&cu=INR`} 
+                          size={130} 
+                          level="H"
+                          includeMargin={false}
+                        />
+                      </div>
+                      
+                      <div className="flex flex-col text-left gap-3 max-w-[200px]">
+                        <div>
+                          <p className="text-xs text-white/50 uppercase tracking-widest font-semibold mb-1">Scan to Pay</p>
+                          <p className="font-bold text-lg text-white">Any Amount</p>
+                        </div>
+                        <div className="h-px w-full bg-white/10 my-1" />
+                        <div>
+                          <p className="text-xs text-white/50 uppercase tracking-widest font-semibold mb-1">UPI ID</p>
+                          <p className="text-sm text-blue-300 font-mono select-all break-all">{upiId}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
