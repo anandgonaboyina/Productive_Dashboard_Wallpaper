@@ -21,7 +21,7 @@ echo ===========================================================================
 echo.
 echo      ___  _  _  ___  _  _  ___     _  _  _  _  __  __  ___  ___ 
 echo     / _ \^| \^| ^|/ _ \^| \^| ^|^|   \   ^| ^|/ /^| ^|^| ^|^|  \/  ^|/ _ \^| _ \ 
-echo    ^|  _  ^| .  ^|  _  ^| .  ^|^| ^|) ^|  ^|   ^< ^| \/ ^|^| ^|\/^| ^|  _  ^|   / 
+echo    ^|  _  ^| .  ^|  _  ^| .  ^|^| ^|^) ^|  ^|   ^< ^| \/ ^|^| ^|\/^| ^|  _  ^|   / 
 echo    ^|_^| ^|_^|_^|\_^|_^| ^|_^|_^|\_^|^|___/   ^|_^|\_\ \__/ ^|_^|  ^|_^|_^| ^|_^|_^|_\ 
 echo.
 echo     "Forged from the pain of wasted days and lost potential."
@@ -101,7 +101,7 @@ echo Rebooting the background server now...
 start wscript "start-server.vbs" "nowait"
 echo.
 echo Server is starting up in the background!
-echo Please REFRESH your Dashboard (or right-click Reload in Lively Wallpaper)
+echo Please REFRESH your Dashboard ^(or right-click Reload in Lively Wallpaper^)
 echo in about 10 to 20 seconds once the server comes online.
 timeout /t 10
 exit
