@@ -100,7 +100,7 @@ echo Rebooting the background server now...
 start wscript "start-server.vbs"
 echo.
 echo Server is starting up in the background!
-echo You can now close this window. Your dashboard will refresh automatically
-echo once the server comes online (usually 10-15 seconds).
+echo Please REFRESH your Dashboard (or right-click Reload in Lively Wallpaper)
+echo in about 10 to 20 seconds once the server comes online.
 timeout /t 10
 exit /b 0
