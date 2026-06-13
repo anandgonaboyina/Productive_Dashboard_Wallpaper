@@ -188,8 +188,12 @@ if "%CURRENT_DIR:~-1%"=="\" set "CURRENT_DIR=%CURRENT_DIR:~0,-1%"
 
 echo Generating start-server.vbs (30s delay)...
 echo Set WshShell = CreateObject("WScript.Shell") > start-server.vbs
-echo WScript.Sleep 30000 >> start-server.vbs
-echo WshShell.CurrentDirectory = "%CURRENT_DIR%" >> start-server.vbs
+echo If WScript.Arguments.Count = 0 Then >> start-server.vbs
+echo     WScript.Sleep 30000 >> start-server.vbs
+echo ElseIf WScript.Arguments(0) <> "nowait" Then >> start-server.vbs
+echo     WScript.Sleep 30000 >> start-server.vbs
+echo End If >> start-server.vbs
+echo WshShell.CurrentDirectory = "%CD%" >> start-server.vbs
 echo WshShell.Run "npm start", 0, False >> start-server.vbs
 
 echo Generating start-lively.vbs (60s delay)...

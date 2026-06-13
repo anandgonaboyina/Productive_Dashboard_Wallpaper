@@ -98,7 +98,7 @@ echo =======================================================
 echo UPDATE COMPLETE AND BUILT SUCCESSFULLY!
 echo =======================================================
 echo Rebooting the background server now...
-start wscript "start-server.vbs"
+start wscript "start-server.vbs" "nowait"
 echo.
 echo Server is starting up in the background!
 echo Please REFRESH your Dashboard (or right-click Reload in Lively Wallpaper)
