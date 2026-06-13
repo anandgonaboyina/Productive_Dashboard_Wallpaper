@@ -67,10 +67,12 @@ export default function DraggableClock({ children }: { children: React.ReactNode
 
   return (
     <div 
-      className={`relative inline-block pointer-events-auto transition-transform ${!isDragging ? 'duration-300' : 'duration-0'} ${lockedWidgets.includes('clock') ? '' : 'cursor-move'} group`}
+      className={`relative inline-block w-fit h-fit pointer-events-auto outline-none focus:outline-none transition-transform ${!isDragging ? 'duration-300' : 'duration-0'} ${lockedWidgets.includes('clock') ? '' : 'cursor-move'} group`}
       style={{ 
         transform: `translate(${position.x}px, ${position.y}px)`,
-        touchAction: 'none'
+        touchAction: 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none'
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -80,7 +82,7 @@ export default function DraggableClock({ children }: { children: React.ReactNode
       title={lockedWidgets.includes('clock') ? '' : "Drag to move. Double-click to reset position."}
     >
       {!lockedWidgets.includes('clock') && (
-        <div className={`absolute inset-0 -m-8 border-2 border-white/20 bg-white/5 rounded-3xl opacity-0 transition-opacity pointer-events-none ${isDragging ? 'opacity-100' : 'group-hover:opacity-100'}`}></div>
+        <div className={`absolute inset-0 border-2 border-white/20 bg-white/5 rounded-3xl opacity-0 transition-opacity pointer-events-none ${isDragging ? 'opacity-100' : 'group-hover:opacity-100'}`}></div>
       )}
       <div className="relative pointer-events-auto">
         {children}

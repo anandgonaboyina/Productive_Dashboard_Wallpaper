@@ -85,6 +85,7 @@ interface DashboardState {
   setActiveTask: (id: string | null, title: string | null) => void;
   updateTaskDuration: (id: string, decreaseMins: number) => void;
   editTaskDuration: (id: string, newDuration: number) => void;
+  updateTaskTitle: (id: string, newTitle: string) => void;
 
   // Global Timer State
   timerEndAt: number | null;
@@ -141,6 +142,7 @@ interface DashboardState {
   updateDeadline: (id: string, text: string) => void;
   deleteDeadline: (id: string) => void;
   deleteAllDeadlinesForDay: (date: string) => void;
+  deleteAllDeadlines: () => void;
 
   // Timetable
   timetableGrid: TimetableGrid;
@@ -211,6 +213,9 @@ const getActiveProfileId = () => {
   return '1';
 };
 
+// Global flag to prevent wiping the database if Next.js API is offline during HMR
+let failedToLoadDB = false;
+
 const fileStorage = createJSONStorage(() => ({
   getItem: async (_name: string): Promise<string | null> => {
     try {
@@ -224,18 +229,27 @@ const fileStorage = createJSONStorage(() => ({
       if (json.data) return JSON.stringify(json.data);
     } catch {
       // Fall back to localStorage only if API is completely offline
+      console.warn("Failed to fetch store from DB, falling back to localStorage.");
     }
-    return localStorage.getItem(`dashboard-storage-${getActiveProfileId()}`);
+    const localData = localStorage.getItem(`dashboard-storage-${getActiveProfileId()}`);
+    if (!localData) {
+      // If both DB and localStorage are empty/offline, we set a flag so we don't accidentally overwrite the DB with an empty state later.
+      failedToLoadDB = true;
+    }
+    return localData;
   },
   setItem: async (_name: string, value: string): Promise<void> => {
     try {
+      if (failedToLoadDB) {
+        throw new Error("Prevented DB overwrite: previous load failed.");
+      }
       await fetch('/api/store', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profileId: getActiveProfileId(), data: JSON.parse(value) }),
       });
-    } catch {
-      // Only write to localStorage if API fails to prevent infinite cross-tab storage event loops
+    } catch (err) {
+      // Only write to localStorage if API fails (or if we blocked the overwrite)
       localStorage.setItem(`dashboard-storage-${getActiveProfileId()}`, value);
     }
   },
@@ -302,6 +316,17 @@ export const useDashboardStore = create<DashboardState>()(
           return {
             tasks: state.tasks.filter((t) => t.id !== id),
             ...(isCurrentlyActive && { activeTaskId: null, activeTaskTitle: null }),
+          };
+        }),
+
+      updateTaskTitle: (id, newTitle) =>
+        set((state) => {
+          const isCurrentlyActive = state.activeTaskId === id;
+          return {
+            tasks: state.tasks.map((t) =>
+              t.id === id ? { ...t, title: newTitle } : t
+            ),
+            ...(isCurrentlyActive && { activeTaskTitle: newTitle }),
           };
         }),
 
@@ -443,6 +468,7 @@ export const useDashboardStore = create<DashboardState>()(
       deleteAllDeadlinesForDay: (date) => set((state) => ({
         deadlines: state.deadlines.filter(d => d.date !== date)
       })),
+      deleteAllDeadlines: () => set({ deadlines: [] }),
 
       // Timetable
       timetableGrid: {

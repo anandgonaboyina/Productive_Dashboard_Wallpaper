@@ -63,7 +63,7 @@ export default function BigClock() {
   const timeLeftText = hrsLeft > 0 ? `${hrsLeft}h left` : `${minsLeft}m left`;
 
   return (
-    <div className={`flex flex-col justify-center pointer-events-none drop-shadow-2xl transition-all duration-500 items-center ${currentBgType === 'image' && isTimetableOpen ? '-translate-y-8' : ''}`}>
+    <div className={`flex flex-col w-fit h-fit justify-center pointer-events-none drop-shadow-2xl transition-all duration-500 items-center ${currentBgType === 'image' && isTimetableOpen ? '-translate-y-8' : ''}`}>
       {showClock && (
         <>
           <div

@@ -13,7 +13,6 @@ const DEFAULT_WALLPAPERS = [
 export default function SettingsModal() {
   const { isSettingsOpen, toggleSettings, is24HourClock, toggle24HourClock, currentBgSrc, hiddenWallpapers, toggleWallpaperVisibility, showHealth, showQuote, showTimer, showCountdowns, showVideoControls, showClock, showTasks, showCalendar, showTodayWork, toggleVisibility, isSlideshowEnabled, setIsSlideshowEnabled, slideshowIntervalMins, setSlideshowIntervalMins, lockedWidgets, toggleWidgetLock, resetAllOffsets, clearOldData, clearAllData, lockedWallpaper, setLockedWallpaper } = useDashboardStore();
   const [activeTab, setActiveTab] = useState<'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about'>('wallpapers');
-  const [coffeeAmount, setCoffeeAmount] = useState<number>(20);
   const [deleteDays, setDeleteDays] = useState<number>(60);
   const upiId = 'gonaboyinaanandkumar@ybl';
 
@@ -910,6 +909,25 @@ export default function SettingsModal() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-6">
                         <a
+                          href="https://www.linkedin.com/in/anand-kumar-gonaboyina-b63946378"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-[#0077b5]/30 rounded-2xl p-3 transition-all hover:scale-105"
+                        >
+                          <div className="p-2 bg-[#0077b5]/20 rounded-xl shrink-0 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#0077b5]">
+                              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                              <rect x="2" y="9" width="4" height="12"></rect>
+                              <circle cx="4" cy="4" r="2"></circle>
+                            </svg>
+                          </div>
+                          <div className="flex flex-col items-start min-w-0 w-full">
+                            <span className="text-[11px] text-white/50 w-full text-left">LinkedIn</span>
+                            <span className="font-semibold text-xs w-full text-left leading-tight">Message me here</span>
+                          </div>
+                        </a>
+
+                        <a
                           href="https://t.me/gAnandKumar"
                           target="_blank"
                           rel="noreferrer"
@@ -943,69 +961,21 @@ export default function SettingsModal() {
                           href="https://my-portfolio-git-main-anandgonaboyinas-projects.vercel.app/"
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-3 transition-all hover:scale-105 sm:col-span-2"
+                          className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-3 transition-all hover:scale-105"
                         >
                           <div className="p-2 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl shrink-0">
                             <Briefcase size={18} className="text-purple-400" />
                           </div>
                           <div className="flex flex-col items-start min-w-0 w-full">
                             <span className="text-[11px] text-white/50 w-full text-left">Portfolio</span>
-                            <span className="font-semibold text-xs w-full text-left leading-tight">View my Other projects & work</span>
+                            <span className="font-semibold text-xs w-full text-left leading-tight">View other projects</span>
                           </div>
                         </a>
                       </div>
                     </div>
                   </div>
 
-                  {/* Support Section */}
-                  <div className="w-full bg-black/20 border border-white/10 rounded-3xl p-6 relative overflow-hidden">
-                    <h4 className="text-xl font-bold mb-1 text-white">Buy me a coffee ☕</h4>
-                    <p className="text-sm text-white/60 mb-5 leading-relaxed">
-                      It took a lot of time and effort to build and maintain this dashboard.
-                      If you find it mostly helpful, your support goes a long way in keeping this project alive and continuously improving!
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 mt-2">
-                      <div className="flex flex-col items-center shrink-0">
-                        <div className="bg-white p-3 rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-                          <QRCodeSVG
-                            value={`upi://pay?pa=${upiId}&pn=Gonaboyina%20Anand%20kumar&am=${coffeeAmount}&cu=INR`}
-                            size={140}
-                            level="M"
-                            includeMargin={false}
-                          />
-                        </div>
-                        <span className="text-sm text-blue-300 uppercase tracking-[0.2em] mt-3 font-black bg-blue-500/20 px-4 py-1.5 rounded-full border border-blue-500/30 shadow-lg">UPI Only</span>
-                      </div>
-
-                      <div className="flex flex-col gap-5 w-full justify-center h-full pt-2">
-                        <div className="flex flex-wrap gap-3">
-                          {[
-                            { val: 20, label: '₹20 ☕' },
-                            { val: 50, label: '₹50 🥤' },
-                            { val: 100, label: '₹100 🥐' },
-                            { val: 200, label: '₹200 🍱' },
-                            { val: 500, label: '₹500 👑' }
-                          ].map((opt) => (
-                            <button
-                              key={opt.val}
-                              onClick={() => setCoffeeAmount(opt.val)}
-                              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${coffeeAmount === opt.val
-                                ? 'bg-blue-500 text-white border-blue-400 scale-110 shadow-lg shadow-blue-500/40'
-                                : 'bg-black/40 text-white/60 border-white/10 hover:border-white/30 hover:text-white'
-                                }`}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-
-                        <div className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold px-6 py-4 rounded-2xl shadow-xl text-lg select-none cursor-default border border-white/10">
-                          Scan with any UPI App to send ₹{coffeeAmount}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Support section removed per user request */}
                 </div>
               )}
             </div>

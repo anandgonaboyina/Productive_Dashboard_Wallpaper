@@ -10,7 +10,7 @@ export default function TaskManager() {
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskDuration, setNewTaskDuration] = useState('25');
 
-    const { tasks, addTask, toggleTask, deleteTask, triggerTimer, isTaskManagerOpen, showQuotePopup, editTaskDuration } = useDashboardStore();
+    const { tasks, addTask, toggleTask, deleteTask, triggerTimer, isTaskManagerOpen, showQuotePopup, editTaskDuration, updateTaskTitle } = useDashboardStore();
     const taskScrollRef = useRef<HTMLDivElement>(null);
 
     if (!isTaskManagerOpen) return null;
@@ -91,9 +91,23 @@ export default function TaskManager() {
                                                 {task.completed ? <CheckCircle size={20} className="text-green-400" /> : <Circle size={20} />}
                                             </button>
                                             <div className="flex flex-col gap-1.5 flex-1 min-w-0 w-full">
-                                                <span className={`whitespace-normal break-words text-sm leading-snug ${task.completed ? 'line-through' : ''}`}>
-                                                    {task.title}
-                                                </span>
+                                                <textarea
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            el.style.height = 'auto';
+                                                            el.style.height = el.scrollHeight + 'px';
+                                                        }
+                                                    }}
+                                                    value={task.title}
+                                                    onChange={(e) => {
+                                                        e.target.style.height = 'auto';
+                                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                                        updateTaskTitle(task.id, e.target.value);
+                                                    }}
+                                                    rows={1}
+                                                    spellCheck={false}
+                                                    className={`bg-transparent outline-none w-full text-sm leading-snug border-b border-transparent focus:border-white/20 transition-colors px-1 -mx-1 resize-none overflow-hidden block ${task.completed ? 'line-through text-white/50' : 'text-white'}`}
+                                                />
                                                 <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden w-full">
                                                     {task.duration > 0 && !task.completed && (
                                                         <span
