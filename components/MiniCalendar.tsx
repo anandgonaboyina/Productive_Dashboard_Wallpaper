@@ -72,7 +72,11 @@ export default function MiniCalendar() {
                 <div className="flex justify-between items-center">
                   <span className="text-red-400 text-xs font-bold tracking-wider">{d.date}</span>
                   <button 
-                    onClick={() => deleteDeadline(d.id)} 
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this deadline?')) {
+                        deleteDeadline(d.id);
+                      }
+                    }} 
                     style={{ marginRight: '5px' }}
                     className="text-red-400/80 bg-red-500/10 hover:bg-red-500/20 hover:text-red-300 p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-all shrink-0"
                   >
@@ -123,7 +127,11 @@ export default function MiniCalendar() {
                   autoFocus
                 />
                 <button 
-                  onClick={() => deleteDeadline(d.id)} 
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete this deadline?')) {
+                      deleteDeadline(d.id);
+                    }
+                  }} 
                   style={{ marginRight: '5px' }}
                   className="text-red-400/80 bg-red-500/10 hover:bg-red-500/20 hover:text-red-300 p-1.5 rounded-md transition-all shrink-0 opacity-0 group-hover:opacity-100"
                 >

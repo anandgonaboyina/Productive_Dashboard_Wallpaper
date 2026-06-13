@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useDashboardStore } from '@/store/dashboardStore';
-import { X, Upload, Trash2, Image as ImageIcon, Settings as SettingsIcon, MonitorPlay, Clock, Users, Plus, Eye, EyeOff, Download, UploadCloud, Activity, MessageSquare, Timer as TimerIcon, Hourglass, Film, User, BadgeCheck, Send, Briefcase, Calendar, CheckSquare, Flame, ChevronUp, ChevronDown, Database } from 'lucide-react';
+import { X, Upload, Trash2, Image as ImageIcon, Settings as SettingsIcon, MonitorPlay, Clock, Users, Plus, Eye, EyeOff, Download, UploadCloud, Activity, MessageSquare, Timer as TimerIcon, Hourglass, Film, User, BadgeCheck, Send, Briefcase, Calendar, CheckSquare, Flame, ChevronUp, ChevronDown, Database, Bell, RefreshCw, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const DEFAULT_WALLPAPERS = [
   'itachi-uchiha.png', 'kakashi.mp4', 'kakashi2.mp4', 'kakashi3.png',
@@ -11,8 +11,8 @@ const DEFAULT_WALLPAPERS = [
 ];
 
 export default function SettingsModal() {
-  const { isSettingsOpen, toggleSettings, is24HourClock, toggle24HourClock, currentBgSrc, hiddenWallpapers, toggleWallpaperVisibility, showHealth, showQuote, showTimer, showCountdowns, showVideoControls, showClock, showTasks, showCalendar, showTodayWork, toggleVisibility, isSlideshowEnabled, setIsSlideshowEnabled, slideshowIntervalMins, setSlideshowIntervalMins, lockedWidgets, toggleWidgetLock, resetAllOffsets, clearOldData, clearAllData, lockedWallpaper, setLockedWallpaper } = useDashboardStore();
-  const [activeTab, setActiveTab] = useState<'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about'>('wallpapers');
+  const { isSettingsOpen, toggleSettings, is24HourClock, toggle24HourClock, currentBgSrc, hiddenWallpapers, toggleWallpaperVisibility, showHealth, showQuote, showTimer, showCountdowns, showVideoControls, showClock, showTasks, showCalendar, showTodayWork, toggleVisibility, isSlideshowEnabled, setIsSlideshowEnabled, slideshowIntervalMins, setSlideshowIntervalMins, lockedWidgets, toggleWidgetLock, resetAllOffsets, clearOldData, clearAllData, lockedWallpaper, setLockedWallpaper, deadlineAlertDays, setDeadlineAlertDays } = useDashboardStore();
+  const [activeTab, setActiveTab] = useState<'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about' | 'update'>('wallpapers');
   const [deleteDays, setDeleteDays] = useState<number>(60);
   const upiId = 'gonaboyinaanandkumar@ybl';
 
@@ -31,6 +31,66 @@ export default function SettingsModal() {
   const [newProfileName, setNewProfileName] = useState('');
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const activeProfileId = typeof window !== 'undefined' ? localStorage.getItem('dashboard-active-profile') || '1' : '1';
+
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
+  const [updateMessage, setUpdateMessage] = useState<{ success: boolean; text: string; isConflict?: boolean } | null>(null);
+  const [changelog, setChangelog] = useState<string[]>([]);
+
+  const handleCheckUpdate = async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setUpdateMessage({ success: false, text: 'No internet connection detected. Please connect to the internet to check for updates.' });
+      return;
+    }
+
+    setIsUpdating(true);
+    setUpdateMessage(null);
+    setUpdateAvailable(false);
+    setChangelog([]);
+    try {
+      const res = await fetch('/api/update', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'check' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUpdateMessage({ success: true, text: data.message });
+        if (data.updateAvailable) {
+          setUpdateAvailable(true);
+          setChangelog(data.changelog || []);
+        }
+      } else {
+        setUpdateMessage({ success: false, text: data.error || 'Check failed.' });
+      }
+    } catch (err: any) {
+      setUpdateMessage({ success: false, text: 'Network error or server unreachable. Please try again.' });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleApplyUpdate = async () => {
+    setIsUpdating(true);
+    setUpdateMessage(null);
+    try {
+      const res = await fetch('/api/update', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'apply' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUpdateMessage({ success: true, text: data.message });
+      } else {
+        setUpdateMessage({ success: false, text: data.error || 'Failed to apply update.' });
+      }
+    } catch (err: any) {
+      setUpdateMessage({ success: false, text: 'Network error. Update script could not be triggered.' });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const fetchWallpapers = async () => {
     try {
@@ -284,6 +344,13 @@ export default function SettingsModal() {
             >
               <Database size={20} />
               Data & Backup
+            </button>
+            <button
+              onClick={() => setActiveTab('update')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === 'update' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
+            >
+              <RefreshCw size={20} />
+              System Update
             </button>
             <button
               onClick={() => setActiveTab('about')}
@@ -578,7 +645,30 @@ export default function SettingsModal() {
                       </button>
                     </div>
 
-
+                    {/* Deadline Alerts */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5 mt-4 gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-white/5 rounded-xl shrink-0">
+                          <Bell size={24} className="text-yellow-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-lg">Deadline Alerts</h4>
+                          <p className="text-sm text-white/50">Show a popup on the main screen when deadlines approach.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-white/60 text-sm">Alert me</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="30"
+                          value={deadlineAlertDays}
+                          onChange={(e) => setDeadlineAlertDays(parseInt(e.target.value) || 0)}
+                          className="w-16 bg-black/40 border border-white/10 rounded-xl px-2 py-2 text-center text-white outline-none focus:border-yellow-400 font-medium"
+                        />
+                        <span className="text-white/60 text-sm">days before</span>
+                      </div>
+                    </div>
 
                     {/* Widget Layout & Positioning */}
                     <div className="flex flex-col p-4 rounded-2xl bg-black/20 border border-white/5 mt-4">
@@ -976,6 +1066,86 @@ export default function SettingsModal() {
                   </div>
 
                   {/* Support section removed per user request */}
+                </div>
+              )}
+
+              {activeTab === 'update' && (
+                <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+                  <div>
+                    <h3 className="text-xl font-semibold flex items-center gap-2">
+                      <RefreshCw className="text-blue-400" size={24} />
+                      System Update
+                    </h3>
+                    <p className="text-white/50 text-sm mt-1">Keep your dashboard up to date with the latest features and fixes directly from Github.</p>
+                  </div>
+
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5 flex flex-col gap-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="text-blue-400 shrink-0 mt-0.5" size={20} />
+                      <div>
+                        <h4 className="font-bold text-blue-300">Git Installation Required</h4>
+                        <p className="text-sm text-blue-200/70 mt-1 leading-relaxed">
+                          This updater uses Git to pull the latest changes. Ensure Git is installed and available in your system path. Schema changes or missing variables will safely default to zero/null without wiping data.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-black/20 border border-white/5 rounded-2xl p-6 flex flex-col items-center text-center gap-4">
+                    <div className="bg-white/5 p-4 rounded-full mb-2">
+                      <RefreshCw size={32} className={`text-white/70 ${isUpdating ? 'animate-spin text-blue-400' : ''}`} />
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-lg font-bold">Check for Updates</h4>
+                      <p className="text-sm text-white/50 mt-1 max-w-md mx-auto">
+                        This will connect to Github, securely download the latest source code, and perform a full production rebuild.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={updateAvailable ? handleApplyUpdate : handleCheckUpdate}
+                      disabled={isUpdating}
+                      className={`mt-2 flex items-center gap-2 ${updateAvailable ? 'bg-green-600 hover:bg-green-500 shadow-green-500/20 hover:shadow-green-500/40' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/20 hover:shadow-blue-500/40'} disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl transition-all font-bold shadow-lg`}
+                    >
+                      {isUpdating ? (
+                        <>
+                          <RefreshCw size={18} className="animate-spin" />
+                          {updateAvailable ? 'Triggering Update...' : 'Checking...'}
+                        </>
+                      ) : (
+                        <>
+                          <Download size={18} />
+                          {updateAvailable ? 'Update Now' : 'Check for Updates'}
+                        </>
+                      )}
+                    </button>
+
+                    {updateMessage && (
+                      <div className={`mt-4 w-full p-4 rounded-xl text-sm font-medium flex flex-col gap-3 text-left ${updateMessage.success ? 'bg-green-500/10 border border-green-500/20 text-green-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
+                        <div className="flex items-start gap-3">
+                          {updateMessage.success ? <CheckCircle size={18} className="shrink-0 mt-0.5" /> : <AlertTriangle size={18} className="shrink-0 mt-0.5" />}
+                          <div className="flex-1 whitespace-pre-wrap">{updateMessage.text}</div>
+                        </div>
+                        
+                        {updateAvailable && changelog.length > 0 && (
+                          <div className="mt-2 w-full bg-black/40 border border-white/10 rounded-xl p-3">
+                            <h5 className="text-[11px] font-bold text-blue-300 mb-2 uppercase tracking-wider">What's New</h5>
+                            <div 
+                              className="max-h-32 overflow-y-auto pr-2 arrow-scrollbar"
+                              onWheel={(e) => { e.stopPropagation(); e.currentTarget.scrollTop += e.deltaY; }}
+                            >
+                              <ul className="list-disc pl-4 space-y-1.5">
+                                {changelog.map((log, idx) => (
+                                  <li key={idx} className="text-xs text-white/80 leading-relaxed font-normal">{log}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

@@ -16,6 +16,7 @@ import HealthModal from "@/components/HealthModal";
 import DraggableClock from "@/components/DraggableClock";
 import DraggableWidget from "@/components/DraggableWidget";
 import SettingsModal from "@/components/SettingsModal";
+import DeadlineAlerts from "@/components/DeadlineAlerts";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, CalendarDays, Settings } from "lucide-react";
 import { useDashboardStore } from "@/store/dashboardStore";
@@ -91,6 +92,7 @@ export default function Dashboard() {
 
   return (
     <main className="relative overflow-hidden w-full flex-1">
+      <DeadlineAlerts />
       {/* Quote Popup */}
       {!isHidden && showQuote && <QuotePopup />}
 

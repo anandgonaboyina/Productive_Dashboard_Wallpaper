@@ -143,6 +143,10 @@ interface DashboardState {
   deleteDeadline: (id: string) => void;
   deleteAllDeadlinesForDay: (date: string) => void;
   deleteAllDeadlines: () => void;
+  deadlineAlertDays: number;
+  setDeadlineAlertDays: (days: number) => void;
+  dismissedDeadlineAlerts: string[];
+  dismissDeadlineAlert: (id: string) => void;
 
   // Timetable
   timetableGrid: TimetableGrid;
@@ -469,6 +473,13 @@ export const useDashboardStore = create<DashboardState>()(
         deadlines: state.deadlines.filter(d => d.date !== date)
       })),
       deleteAllDeadlines: () => set({ deadlines: [] }),
+      
+      deadlineAlertDays: 0,
+      setDeadlineAlertDays: (days) => set({ deadlineAlertDays: Math.max(0, days) }),
+      dismissedDeadlineAlerts: [],
+      dismissDeadlineAlert: (id) => set((state) => ({
+        dismissedDeadlineAlerts: Array.from(new Set([...state.dismissedDeadlineAlerts, id]))
+      })),
 
       // Timetable
       timetableGrid: {
