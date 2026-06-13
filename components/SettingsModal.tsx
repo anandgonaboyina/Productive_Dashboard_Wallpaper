@@ -310,7 +310,7 @@ export default function SettingsModal() {
           <div className="relative flex-1 overflow-hidden flex flex-col">
             <div
               ref={settingsScrollRef}
-              className="flex-1 overflow-y-auto p-6 [&::-webkit-scrollbar]:hidden"
+              className="flex-1 overflow-y-auto p-6 arrow-scrollbar"
               onWheel={(e) => { e.stopPropagation(); e.currentTarget.scrollTop += e.deltaY; }}
             >
 
@@ -447,8 +447,8 @@ export default function SettingsModal() {
                         const isHidden = hiddenWallpapers.includes(bg.filename);
 
                         return (
-                          <div 
-                            key={bg.filename} 
+                          <div
+                            key={bg.filename}
                             onClick={() => setLockedWallpaper(bg.filename)}
                             className={`relative cursor-pointer group aspect-video rounded-xl overflow-hidden bg-black/40 border-2 transition-all ${isActive ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-white/10 hover:border-white/30'} ${isHidden ? 'opacity-40 grayscale' : ''}`}
                           >
@@ -508,8 +508,8 @@ export default function SettingsModal() {
                         const isHidden = hiddenWallpapers.includes(bg.filename);
 
                         return (
-                          <div 
-                            key={bg.filename} 
+                          <div
+                            key={bg.filename}
                             onClick={() => setLockedWallpaper(bg.filename)}
                             className={`relative cursor-pointer group aspect-video rounded-xl overflow-hidden bg-black/40 border-2 transition-all ${isActive ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-white/10 hover:border-white/30'} ${isHidden ? 'opacity-40 grayscale' : ''}`}
                           >
@@ -801,7 +801,7 @@ export default function SettingsModal() {
                         </label>
                       </div>
                     </div>
-                    
+
                     {/* Clear Old Data */}
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5 gap-5">
                       <div className="flex items-start gap-4 flex-1">
@@ -813,17 +813,16 @@ export default function SettingsModal() {
                             <h4 className="font-medium text-lg leading-tight">Clear Old Data</h4>
                             <p className="text-sm text-white/50 mt-1">Delete health and history logs older than the selected timeframe.</p>
                           </div>
-                          
+
                           <div className="flex flex-wrap gap-2 mt-1">
                             {[15, 30, 60, 90, 120].map(days => (
                               <button
                                 key={days}
                                 onClick={() => setDeleteDays(days)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                                  deleteDays === days 
-                                    ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50 scale-105' 
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${deleteDays === days
+                                    ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50 scale-105'
                                     : 'bg-black/40 text-white/50 border-white/5 hover:border-white/20 hover:text-white'
-                                }`}
+                                  }`}
                               >
                                 {days} Days
                               </button>
@@ -1011,11 +1010,7 @@ export default function SettingsModal() {
               )}
             </div>
 
-            {/* Tiny Scroll Arrows */}
-            <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between items-center pointer-events-none">
-              <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(settingsScrollRef, 'up')} className="pointer-events-auto flex items-center justify-center w-12 h-6 bg-blue-500/80 hover:bg-blue-500 border-x border-b border-blue-400/50 rounded-b-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronUp size={16} strokeWidth={3} /></button>
-              <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(settingsScrollRef, 'down')} className="pointer-events-auto flex items-center justify-center w-12 h-6 bg-blue-500/80 hover:bg-blue-500 border-x border-t border-blue-400/50 rounded-t-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronDown size={16} strokeWidth={3} /></button>
-            </div>
+
           </div>
         </div>
       </div>

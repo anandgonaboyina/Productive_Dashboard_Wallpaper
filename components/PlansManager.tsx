@@ -109,7 +109,7 @@ function PlansEditor() {
         <div className="relative flex-1 overflow-hidden flex flex-col">
           <div
             ref={mainScrollRef}
-            className={`flex-1 p-6 ${view === 'detail' ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:hidden'}`}
+            className={`flex-1 p-6 ${view === 'detail' ? 'overflow-hidden' : 'overflow-y-auto overscroll-contain arrow-scrollbar'}`}
             onWheel={e => {
               if (view !== 'detail') {
                 e.stopPropagation();
@@ -142,13 +142,7 @@ function PlansEditor() {
             )}
           </div>
 
-          {/* Tiny Scroll Arrows (Hidden in detail view) */}
-          {view !== 'detail' && (
-            <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between items-center pointer-events-none">
-              <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(mainScrollRef, 'up')} className="pointer-events-auto flex items-center justify-center w-12 h-5 bg-blue-500/80 hover:bg-blue-500 border-x border-b border-blue-400/50 rounded-b-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronUp size={16} strokeWidth={3} /></button>
-              <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(mainScrollRef, 'down')} className="pointer-events-auto flex items-center justify-center w-12 h-5 bg-blue-500/80 hover:bg-blue-500 border-x border-t border-blue-400/50 rounded-t-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronDown size={16} strokeWidth={3} /></button>
-            </div>
-          )}
+
         </div>
       </div>
     </div>
@@ -517,7 +511,7 @@ function DetailView({ plan, onAddSub, onToggleSub, onDeleteSub, onDeletePlan }: 
         <div className="relative flex-1 overflow-hidden flex flex-col">
           <div
             ref={checklistScrollRef}
-            className="flex-1 overflow-y-auto pr-2 flex flex-col gap-2 overscroll-contain [&::-webkit-scrollbar]:hidden"
+            className="flex-1 overflow-y-auto pr-2 flex flex-col gap-2 overscroll-contain arrow-scrollbar"
             onWheel={e => { e.stopPropagation(); e.currentTarget.scrollTop += e.deltaY; }}
           >
             {plan.subTopics.length === 0 ? (
@@ -548,11 +542,7 @@ function DetailView({ plan, onAddSub, onToggleSub, onDeleteSub, onDeletePlan }: 
             )}
           </div>
 
-          {/* Tiny Scroll Arrows */}
-          <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between items-center pointer-events-none">
-            <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(checklistScrollRef, 'up')} className="pointer-events-auto flex items-center justify-center w-12 h-5 bg-blue-500/80 hover:bg-blue-500 border-x border-b border-blue-400/50 rounded-b-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronUp size={16} strokeWidth={3} /></button>
-            <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(checklistScrollRef, 'down')} className="pointer-events-auto flex items-center justify-center w-12 h-5 bg-blue-500/80 hover:bg-blue-500 border-x border-t border-blue-400/50 rounded-t-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronDown size={16} strokeWidth={3} /></button>
-          </div>
+
         </div>
 
         <form onSubmit={submitSub} className="mt-4 pt-4 border-t border-white/10">

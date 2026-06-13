@@ -65,7 +65,7 @@ export default function StatsModal() {
 
         <h3 className="text-sm font-semibold tracking-widest text-white/50 uppercase mb-3">Daily Breakdown</h3>
         
-        <div className="max-h-[250px] overflow-y-auto pr-2 flex flex-col gap-2 scrollbar-thin scrollbar-thumb-white/20">
+        <div className="max-h-[450px] overflow-y-auto pr-2 flex flex-col gap-2 arrow-scrollbar">
           {dates.length === 0 ? (
             <p className="text-center text-white/40 italic py-4">No focus sessions recorded yet. Start a timer!</p>
           ) : (

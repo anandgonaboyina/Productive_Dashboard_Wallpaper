@@ -56,7 +56,7 @@ export default function TaskManager() {
                 <div className="relative flex-1 overflow-hidden flex flex-col">
                     <div 
                         ref={taskScrollRef}
-                        className="flex-1 overflow-y-auto p-2 [&::-webkit-scrollbar]:hidden max-h-[332px]"
+                        className="flex-1 overflow-y-auto p-2 arrow-scrollbar max-h-[332px]"
                         onWheel={(e) => { e.stopPropagation(); e.currentTarget.scrollTop += e.deltaY; }}
                     >
                         {tasks.length === 0 ? (
@@ -118,11 +118,6 @@ export default function TaskManager() {
                     )}
                     </div>
 
-                    {/* Tiny Scroll Arrows */}
-                    <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between items-center pointer-events-none">
-                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(taskScrollRef, 'up')} className="pointer-events-auto flex items-center justify-center w-12 h-5 bg-blue-500/80 hover:bg-blue-500 border-x border-b border-blue-400/50 rounded-b-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronUp size={16} strokeWidth={3} /></button>
-                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => scrollBy(taskScrollRef, 'down')} className="pointer-events-auto flex items-center justify-center w-12 h-5 bg-blue-500/80 hover:bg-blue-500 border-x border-t border-blue-400/50 rounded-t-xl text-white backdrop-blur-md transition-all shadow-[0_0_10px_rgba(59,130,246,0.5)]"><ChevronDown size={16} strokeWidth={3} /></button>
-                    </div>
                 </div>
 
                 <form onSubmit={handleAddTask} className="p-3 border-t border-white/10 bg-black/10 flex gap-1">
