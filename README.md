@@ -23,17 +23,18 @@
 5. [Manual Developer Setup](#manual-setup)
 6. [Connecting to Lively Wallpaper](#lively)
 7. [All Features Deep-Dive](#features)
-8. [Database Schema](#database)
-9. [API Endpoints Reference](#api)
-10. [State Management Architecture](#state)
-11. [Wallpaper & Background System](#wallpaper-system)
-12. [Automated Startup System](#startup)
-13. [Data Persistence & Reboot Safety](#persistence)
-14. [Multi-Profile System](#profiles)
-15. [Known Quirks & Pro Tips](#quirks)
-16. [Roadmap / Ideas](#roadmap)
-17. [Contributing](#contributing)
-18. [Author](#author)
+8. [OTA Over-The-Air Update System](#ota)
+9. [Database Schema](#database)
+10. [API Endpoints Reference](#api)
+11. [State Management Architecture](#state)
+12. [Wallpaper & Background System](#wallpaper-system)
+13. [Automated Startup System](#startup)
+14. [Data Persistence & Reboot Safety](#persistence)
+15. [Multi-Profile System](#profiles)
+16. [Known Quirks & Pro Tips](#quirks)
+17. [Roadmap / Ideas](#roadmap)
+18. [Contributing](#contributing)
+19. [Author](#author)
 
 ---
 
@@ -131,8 +132,9 @@ productivedashboard/
 │   ├── MiniCalendar.tsx          # Compact month calendar
 │   ├── StatsModal.tsx            # Study/work history statistics viewer
 │   ├── QuotePopup.tsx            # Motivational quote display with animation
+│   ├── StartupUpdateChecker.tsx  # Auto boot-time update notification popup
 │   ├── CustomDatePicker.tsx      # Reusable date picker component
-│   └── SettingsModal.tsx         # Full settings panel (tabs: Wallpapers, Preferences, Workspaces, Data & Backup, About)
+│   └── SettingsModal.tsx         # Full settings panel (tabs: Wallpapers, Preferences, Workspaces, Data & Backup, Update, About)
 │
 ├── store/
 │   └── dashboardStore.ts         # Zustand global store + custom SQLite-backed persistence adapter
@@ -147,9 +149,11 @@ productivedashboard/
 │   ├── wallpapers/               # Default bundled wallpaper files
 │   └── branding/                 # Author photo, logo assets
 │
-├── setup.bat                     # 1-click automated installer script
-├── start-server.vbs              # Silent VBS: starts Next.js server invisibly
-├── start-lively.vbs              # Silent VBS: opens Lively Wallpaper app
+├── app/api/update/route.ts       # REST endpoint: check git commits + trigger update
+├── setup.bat                     # 1-click automated installer (downloads Node/Git if missing)
+├── update-build.bat              # Self-elevating OTA update script (memory-block safe)
+├── start-server.vbs              # Silent VBS: starts Next.js server (boot delay or instant)
+├── start-lively.vbs              # Silent VBS: opens Lively Wallpaper (boot delay or instant)
 └── .gitignore                    # Excludes /data, /prisma/*.db, VBS files, .env
 ```
 
@@ -165,6 +169,8 @@ productivedashboard/
 - An active internet connection (for the first-time install only)
 - [Lively Wallpaper](https://apps.microsoft.com/detail/9ntm2qc6qws7) (Free on the Microsoft Store)
 
+> **Node.js and Git are NOT required before running setup!** The script will detect if they are missing and download and silently install them for you automatically.
+
 ### Steps
 
 1. **Download** this repository as a ZIP file and **extract it** to a permanent location on your PC.  
@@ -173,16 +179,20 @@ productivedashboard/
 2. **Right-click `setup.bat`** → **Run as Administrator**
 
 3. The script will automatically:
-   - ✅ Check for and install Node.js if missing
-   - ✅ Run `npm install` to download all dependencies
+   - ✅ **Detect and install Node.js** — Downloads the official `.msi` installer and runs it silently if Node.js is not found. Environment variables are set automatically by the MSI.
+   - ✅ **Detect and install Git** — Downloads the official Git for Windows `.exe` installer and runs it silently if Git is not found.
+   - ✅ Run `npm install` to download all project dependencies
    - ✅ Generate the Prisma client and set up the SQLite database
-   - ✅ Create a `.env` file with the correct database path
-   - ✅ Build the production-optimized Next.js bundle
-   - ✅ Create `start-server.vbs` — a silent script that starts the server with zero console windows
-   - ✅ Create `start-lively.vbs` — a silent script that opens Lively Wallpaper with a delay
-   - ✅ Register **two Task Scheduler tasks** to auto-run both scripts at login with Administrator privileges and auto-retry on failure
+   - ✅ Create a `.env` file with the dynamically resolved database path
+   - ✅ Build the production-optimized Next.js bundle (`npm run build`)
+   - ✅ Auto-detect the Lively Wallpaper executable path across all known install locations (Microsoft Store, standalone installer, AppData)
+   - ✅ Generate `start-server.vbs` — starts the Next.js server invisibly with a 30-second boot delay, or instantly when triggered by an update
+   - ✅ Generate `start-lively.vbs` — opens Lively Wallpaper with a 60-second boot delay, or instantly when triggered by an update
+   - ✅ Register **two Task Scheduler tasks** to auto-run both scripts at login with Administrator privileges and auto-retry on failure (3 retries, 1 minute apart)
 
 4. **Restart your PC.** The dashboard will be live at `http://localhost:4321` before you even open a browser.
+
+> **Safe to re-run!** If you run `setup.bat` again on a machine where everything is already installed, it safely skips each step and only regenerates the VBS scripts and Task Scheduler tasks.
 
 ---
 
@@ -383,6 +393,46 @@ A visual history of your study/work sessions:
 
 ---
 
+### 🛡️ Focus / Panic Mode
+
+A quick privacy toggle for when you need to hide everything from the screen:
+
+- **Ctrl+H** to hide all widgets instantly (panic button)
+- **Ctrl+Shift+H** to force-unhide everything if in full panic mode
+- Granular control — choose exactly which widgets are hidden when panic mode is activated (clock, tasks, notes, health rings, dock, etc.)
+- Configured via `Settings → Focus / Panic Mode`
+
+---
+
+### 🔊 Sound & Alarm Settings
+
+A dedicated audio configuration tab:
+
+- Choose from multiple built-in alarm sounds or upload your own `.mp3` / `.wav` files
+- Set alarm **volume** (0–100%)
+- Set alarm **duration** (how long it plays when a timer ends)
+- Uploaded alarm files are stored in `/public/custom-alarms/`
+
+---
+
+### 🚨 Deadline Alerts
+
+A proactive notification system for upcoming deadlines:
+
+- Automatically scans all your Countdown timers
+- Displays a floating alert banner on the desktop when a deadline is within **N days** (configurable in Settings)
+- Helps you stay aware of approaching exam dates, project submissions, and other critical targets without manually checking
+
+---
+
+### 📤 Data Export & Backup
+
+- Export your full profile data (tasks, notes, plans, health history, settings) as a **`.json` backup file** at any time
+- Access via `Settings → Data & Backup → Export Data`
+- Recommended before applying any over-the-air update, as schema-level database changes can occasionally clear stored state
+
+---
+
 ### 🔗 Navbar (Quick Launch Icons)
 
 A sleek top navigation bar with one-click launchers for:
@@ -392,6 +442,66 @@ A sleek top navigation bar with one-click launchers for:
 - **VS Code** — launches Visual Studio Code via the `vscode://` protocol
 - **Antigravity** — links to the AI coding assistant
 - All links open in new windows/tabs to avoid disrupting the wallpaper WebView2 session
+
+---
+
+<a id="ota"></a>
+## 🔄 OTA Over-The-Air Update System
+
+The dashboard features a professional, fully automated **one-click update system** — no terminal, no manual commands, no restart required.
+
+### How It Works
+
+1. **Startup Auto-Check**: Every time Lively Wallpaper opens the dashboard fresh (on boot, or after a Lively restart), the `StartupUpdateChecker` component silently calls the `/api/update` endpoint **8 seconds after load**, ensuring it doesn't interfere with the dashboard boot sequence.
+
+2. **Smart Session Guard**: The check uses `sessionStorage` to ensure it only runs **once per session**. A manual browser Reload (right-click → Reload in Lively) will not repeatedly trigger the popup — only a genuine fresh boot session will.
+
+3. **Update Notification Popup**: If a new version is available on GitHub, a beautiful floating notification slides in from the top of the screen with:
+   - Title: **"Productive Dashboard Update"**
+   - A short description of what's new
+   - A **"View Update Details"** button that opens `Settings → Dashboard Update` tab directly
+   - A dismiss **"✕"** button to close without updating
+
+4. **Update Details Screen**: Inside `Settings → Dashboard Update`, you can:
+   - See the full **changelog** of new commits (filtered to user-facing features and fixes)
+   - Read the **warning message** advising you to export a data backup before updating
+   - Click **"Confirm & Update Now"** to trigger the automated update
+
+### What The Update Script Does (`update-build.bat`)
+
+The update is handled entirely by a self-elevating batch script that:
+
+1. **Requests Administrator privileges** automatically — a UAC prompt appears, and the main window closes cleanly
+2. **Kills Lively Wallpaper** instantly (`taskkill /F /IM Lively.exe`) for a clean screen
+3. **Kills the background Node server** (`npx kill-port 4321`)
+4. **Backs up your database** to `prisma/dev.db.backup` before any code changes
+5. **Pulls the latest code** from GitHub (`git pull origin main`)
+6. **Restores the database backup** to protect your data
+7. **Clears the old build cache** (`rmdir /s /q .next`) to prevent stale file issues
+8. **Rebuilds the app** (`npm run build`)
+9. **Restarts the server** instantly in the background (`start-server.vbs nowait`)
+10. **Waits 10 seconds** for the server to fully boot
+11. **Restarts Lively Wallpaper** instantly (`start-lively.vbs nowait`) — your wallpaper reappears automatically
+
+### Technical Design: Memory-Block Execution
+
+The entire update logic is wrapped in a Windows batch **memory block** (`( ... )` parenthesis group). This means the entire script is loaded into RAM before execution begins. This is critical because `git pull` overwrites `update-build.bat` itself on disk during step 5 — without the memory block, the script would crash mid-run. With it, the script executes from RAM and survives being overwritten.
+
+### Argument-Based VBS Control
+
+Both `start-server.vbs` and `start-lively.vbs` support a `nowait` argument:
+
+```vb
+' Normal boot (called by Task Scheduler): 30s or 60s delay
+wscript start-server.vbs boot
+wscript start-lively.vbs
+
+' OTA Update restart (called by update-build.bat): instant
+wscript start-server.vbs nowait
+wscript start-lively.vbs nowait
+```
+
+This ensures boot-time scripts are staggered to avoid race conditions, while OTA-triggered restarts are immediate for a smooth user experience.
 
 ---
 
@@ -450,6 +560,8 @@ model HealthRecord {
 | `DELETE` | `/api/profiles` | Delete a profile and all its data |
 | `GET` | `/api/export?profileId=1` | Download a full JSON backup of a profile |
 | `GET` | `/api/thumbnails?file=video.mp4` | Get or generate a thumbnail for a video |
+| `POST` | `/api/update` (action: `"check"`) | Fetch latest commits from GitHub and check if update is available |
+| `POST` | `/api/update` (action: `"apply"`) | Trigger `update-build.bat` with admin elevation to pull, rebuild, and restart |
 
 ---
 
@@ -526,22 +638,41 @@ The background system (`VideoBackground.tsx`) is reactive and intelligent:
 <a id="startup"></a>
 ## 🚀 Automated Startup System
 
-The dashboard uses a two-script VBScript system to start silently on Windows boot:
+The dashboard uses a two-script VBScript system to start silently on Windows boot. Both scripts are **dynamically generated** by `setup.bat` at install time, so they always contain the correct paths for whatever PC they're installed on.
 
 ### `start-server.vbs`
 ```vb
 ' Starts Next.js production server completely invisibly (no console window)
+' Supports optional argument: "boot" = wait 30s, "nowait" = start instantly
 Set WshShell = CreateObject("WScript.Shell")
-WshShell.Run "cmd /c cd /d ""C:\path\to\dashboard"" && npm run start", 0, False
+If WScript.Arguments.Count > 0 Then
+    If WScript.Arguments(0) = "boot" Then
+        WScript.Sleep 30000   ' 30 second delay on boot
+    End If
+End If
+WshShell.CurrentDirectory = "D:\productivedashboard"
+WshShell.Run "npm start", 0, False
 ```
 
 ### `start-lively.vbs`
 ```vb
-' Waits 15 seconds for the server to start, then opens Lively Wallpaper
-WScript.Sleep 15000
+' Waits 60 seconds for the server to start on boot, then opens Lively Wallpaper
+' Supports optional argument: "nowait" = start Lively instantly (used by OTA updater)
 Set WshShell = CreateObject("WScript.Shell")
+If WScript.Arguments.Count = 0 Then
+    WScript.Sleep 60000   ' 60 second delay on boot
+ElseIf WScript.Arguments(0) <> "nowait" Then
+    WScript.Sleep 60000
+End If
 WshShell.Run """C:\path\to\Lively.exe""", 0, False
 ```
+
+### Why the Staggered Delays?
+
+| Script | Boot Delay | OTA Delay | Reason |
+|---|---|---|---|
+| `start-server.vbs` | 30 seconds | Instant | Gives Windows time to fully boot before starting Node |
+| `start-lively.vbs` | 60 seconds | 10 seconds | Ensures the Next.js server is fully ready before Lively tries to connect |
 
 Both scripts are registered as **Windows Task Scheduler tasks** with:
 - Trigger: **At user logon**
@@ -608,6 +739,13 @@ Browsers require user interaction before playing audio. When a video wallpaper f
 <a id="roadmap"></a>
 ## 🗺️ Roadmap / Ideas
 
+- [x] ~~OTA One-Click Update System~~ ✅ **Done**
+- [x] ~~Automatic startup on Windows boot~~ ✅ **Done**
+- [x] ~~Multi-profile / Workspace support~~ ✅ **Done**
+- [x] ~~Locked wallpaper persistence~~ ✅ **Done**
+- [x] ~~Focus / Panic mode~~ ✅ **Done**
+- [x] ~~Startup update notification popup~~ ✅ **Done**
+- [x] ~~Automated Node.js + Git installer in setup~~ ✅ **Done**
 - [ ] **AI Voice Assistant** — Gemini-powered voice interface with avatar overlay
 - [ ] **Pomodoro Statistics** — Track focus sessions and break compliance over time
 - [ ] **Weather Widget** — Real-time local weather via a free API
