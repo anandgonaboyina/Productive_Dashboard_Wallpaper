@@ -13,6 +13,19 @@ export async function POST(request: Request) {
     // Check if an update is actually available by comparing with origin/main
     if (body.action === 'check') {
       try {
+        // Ensure the directory is a git repository before fetching
+        try {
+          await execAsync('git status');
+        } catch {
+          // If not a git repo (e.g. downloaded as ZIP), initialize it automatically
+          await execAsync('git init');
+          await execAsync('git remote add origin https://github.com/anandgonaboyina/Personal_Desktop_Productivity_Wallpaper.git');
+          await execAsync('git branch -M main');
+        }
+
+        // Just in case remote URL is missing
+        await execAsync('git remote set-url origin https://github.com/anandgonaboyina/Personal_Desktop_Productivity_Wallpaper.git');
+        
         await execAsync('git fetch origin');
         const { stdout: countOut } = await execAsync('git rev-list HEAD...origin/main --count');
         const count = parseInt(countOut.trim()) || 0;
