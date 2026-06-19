@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         await execAsync('git remote set-url origin https://github.com/anandgonaboyina/Personal_Desktop_Productivity_Wallpaper.git');
         
         await execAsync('git fetch origin');
-        const { stdout: countOut } = await execAsync('git rev-list HEAD...origin/main --count');
+        const { stdout: countOut } = await execAsync('git rev-list HEAD..origin/main --count');
         const count = parseInt(countOut.trim()) || 0;
 
         if (count > 0) {

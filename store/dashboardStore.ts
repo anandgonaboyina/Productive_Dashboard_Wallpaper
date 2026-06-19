@@ -270,6 +270,62 @@ const getActiveProfileId = () => {
 // Global flag to prevent wiping the database if Next.js API is offline during HMR
 let failedToLoadDB = false;
 
+// Tracking unsaved changes to prevent race conditions with DB sync
+export let hasUnsavedChanges = false;
+let saveTimeout: NodeJS.Timeout | null = null;
+let pendingValue: string | null = null;
+let isSaving = false;
+
+const performSave = async () => {
+  if (!pendingValue) return;
+  const valueToSave = pendingValue;
+  isSaving = true;
+  
+  if (failedToLoadDB) {
+    localStorage.setItem(`dashboard-storage-${getActiveProfileId()}`, valueToSave);
+    if (pendingValue === valueToSave) {
+      pendingValue = null;
+      hasUnsavedChanges = false;
+    } else {
+      saveTimeout = setTimeout(performSave, 500);
+    }
+    isSaving = false;
+    return;
+  }
+  
+  let success = false;
+  try {
+    const res = await fetch('/api/store', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profileId: getActiveProfileId(), data: JSON.parse(valueToSave) }),
+    });
+    if (!res.ok) {
+      throw new Error(`API save failed with status ${res.status}`);
+    }
+    success = true;
+  } catch (err) {
+    console.warn("Failed to save to DB, storing locally:", err);
+    localStorage.setItem(`dashboard-storage-${getActiveProfileId()}`, valueToSave);
+  } finally {
+    isSaving = false;
+    if (success) {
+      if (pendingValue === valueToSave) {
+        pendingValue = null;
+        hasUnsavedChanges = false;
+      } else {
+        saveTimeout = setTimeout(performSave, 500);
+      }
+    } else {
+      if (pendingValue === valueToSave) {
+        saveTimeout = setTimeout(performSave, 2000);
+      } else {
+        saveTimeout = setTimeout(performSave, 500);
+      }
+    }
+  }
+};
+
 const fileStorage = createJSONStorage(() => ({
   getItem: async (_name: string): Promise<string | null> => {
     if (typeof window === 'undefined') return null;
@@ -304,20 +360,11 @@ const fileStorage = createJSONStorage(() => ({
   },
   setItem: async (_name: string, value: string): Promise<void> => {
     if (typeof window === 'undefined') return;
-    try {
-      if (failedToLoadDB) {
-        throw new Error("Prevented DB overwrite: previous load failed.");
-      }
-      await fetch('/api/store', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileId: getActiveProfileId(), data: JSON.parse(value) }),
-      });
-    } catch (err) {
-      // CRITICAL: If the DB failed to load initially, do NOT write the empty fallback state to localStorage!
-      // This prevents poisoning the fallback system and permanently wiping data.
-      if (failedToLoadDB) return;
-      localStorage.setItem(`dashboard-storage-${getActiveProfileId()}`, value);
+    pendingValue = value;
+    hasUnsavedChanges = true;
+    
+    if (!isSaving && !saveTimeout) {
+      saveTimeout = setTimeout(performSave, 500);
     }
   },
   removeItem: async (_name: string): Promise<void> => {

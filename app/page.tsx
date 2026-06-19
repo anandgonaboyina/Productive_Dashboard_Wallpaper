@@ -22,7 +22,7 @@ import DeadlineAlerts from "@/components/DeadlineAlerts";
 import StartupUpdateChecker from "@/components/StartupUpdateChecker";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, CalendarDays, Settings } from "lucide-react";
-import { useDashboardStore } from "@/store/dashboardStore";
+import { useDashboardStore, hasUnsavedChanges } from "@/store/dashboardStore";
 import { fetchQuote } from "@/utils/quoteEngine";
 
 export default function Dashboard() {
@@ -123,10 +123,11 @@ export default function Dashboard() {
       // Only pull from DB if user isn't actively typing in an input field.
       // This prevents typing overwrites while typing in Notes/Tasks, but ensures 
       // Lively Wallpaper ALWAYS polls reliably regardless of window focus state.
+      // We also check hasUnsavedChanges to avoid pulling old DB state while local saves are pending.
       const activeTag = document.activeElement?.tagName.toLowerCase();
       const isTyping = activeTag === 'input' || activeTag === 'textarea';
 
-      if (!isTyping) {
+      if (!isTyping && !hasUnsavedChanges) {
         useDashboardStore.persist.rehydrate();
       }
     };
