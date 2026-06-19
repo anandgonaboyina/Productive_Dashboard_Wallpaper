@@ -218,7 +218,13 @@ export default function Dashboard() {
 
           {/* BigClock */}
           {(!isHidden || !hideConfig.clock) && showClock && (
-          <div className={`absolute z-[999] pointer-events-none transition-all duration-500 ${currentBgType === 'image' ? 'inset-0 flex items-start mt-40 justify-center' : 'top-40 left-10'}`}>
+          <div className={`absolute z-[999] pointer-events-none transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+            isTimetableOpen 
+              ? 'top-1/2 left-20 -translate-y-1/2 translate-x-0' 
+              : currentBgType === 'image' 
+                ? 'top-40 left-1/2 -translate-x-1/2 translate-y-0' 
+                : 'top-40 left-10 translate-x-0 translate-y-0'
+          }`}>
             <DraggableClock>
               <BigClock />
             </DraggableClock>
@@ -228,24 +234,26 @@ export default function Dashboard() {
           {/* Bottom Center (Above Dock): Timetable */}
           {(!isHidden || !hideConfig.timetable) && showTimetable && (
           <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-[50] flex flex-col items-center">
-            {isTimetableOpen ? (
-              <div className="flex flex-col items-center gap-2">
-                <Timetable />
-                <button
-                  onClick={() => setIsTimetableOpen(false)}
-                  className="bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-2 py-2 text-white/60 hover:text-white hover:bg-black/60 transition-colors flex items-center gap-2 shadow-xl"
-                >
-                  <ChevronDown size={16} />
-                </button>
-              </div>
-            ) : (
+            {/* The Expanded Timetable */}
+            <div className={`flex flex-col items-center gap-2 absolute bottom-0 origin-bottom transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isTimetableOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : 'opacity-0 translate-y-12 scale-90 pointer-events-none'}`}>
+              <Timetable />
+              <button
+                onClick={() => setIsTimetableOpen(false)}
+                className="bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-2 py-2 text-white/60 hover:text-white hover:bg-black/60 transition-colors flex items-center gap-2 shadow-xl"
+              >
+                <ChevronDown size={16} />
+              </button>
+            </div>
+
+            {/* The Closed Button */}
+            <div className={`absolute bottom-0 origin-bottom transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${!isTimetableOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto delay-300' : 'opacity-0 translate-y-8 scale-50 pointer-events-none'}`}>
               <button
                 onClick={() => setIsTimetableOpen(true)}
-                className="bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-2 py-2 text-white/80 hover:text-white hover:bg-black/40 transition-colors flex items-center gap-2 shadow-xl hover:scale-105 pointer-events-auto"
+                className="bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-2 py-2 text-white/80 hover:text-white hover:bg-black/40 transition-colors flex items-center gap-2 shadow-xl hover:scale-105"
               >
                 <CalendarDays size={18} className="text-purple-400" />
               </button>
-            )}
+            </div>
           </div>
           )}
 

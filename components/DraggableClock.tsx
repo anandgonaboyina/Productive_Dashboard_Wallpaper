@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function DraggableClock({ children }: { children: React.ReactNode }) {
-  const { currentBgSrc, clockOffsets, updateClockOffset, resetClockOffset, lockedWidgets } = useDashboardStore();
+  const { currentBgSrc, clockOffsets, updateClockOffset, resetClockOffset, lockedWidgets, isTimetableOpen } = useDashboardStore();
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const startPos = useRef({ x: 0, y: 0 });
@@ -69,7 +69,7 @@ export default function DraggableClock({ children }: { children: React.ReactNode
     <div 
       className={`relative inline-block w-fit h-fit p-8 pointer-events-auto outline-none focus:outline-none transition-transform ${!isDragging ? 'duration-300' : 'duration-0'} ${lockedWidgets.includes('clock') ? '' : 'cursor-move'} group`}
       style={{ 
-        transform: `translate(${position.x}px, ${position.y}px)`,
+        transform: isTimetableOpen ? 'none' : `translate(${position.x}px, ${position.y}px)`,
         touchAction: 'none',
         userSelect: 'none',
         WebkitUserSelect: 'none'

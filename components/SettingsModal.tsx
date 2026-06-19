@@ -575,8 +575,8 @@ export default function SettingsModal() {
             >
               <div className="absolute top-0 bottom-0 w-[150%] bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none glass-sweep-anim" style={{ left: '-100%' }} />
               <BadgeCheck size={20} className={`relative z-10 ${settingsActiveTab === 'credits' ? 'text-pink-400' : ''}`} />
-              <div className="flex flex-col items-start text-left relative z-10">
-                <span className="text-sm font-semibold tracking-wide leading-tight">Credits & Supporters</span>
+              <div className="flex flex-col items-start text-left relative z-10 overflow-hidden">
+                <span className="text-sm font-semibold tracking-wide leading-tight whitespace-nowrap">Credits & Supporters</span>
               </div>
             </button>
             <button
@@ -1785,76 +1785,74 @@ export default function SettingsModal() {
                   </div>
 
                   {/* Supporters */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Sathish Kumar */}
-                    <div className="bg-black/20 border border-white/5 rounded-2xl p-5 flex flex-col gap-4 hover:bg-white/5 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 shrink-0 rounded-full overflow-hidden border-2 border-white/10 shadow-lg">
-                          <img
-                            src="/sathish.jpeg"
-                            alt="Sathish Kumar"
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                        </div>
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <h4 className="text-lg font-bold text-white truncate leading-tight">Sathish Kumar</h4>
-                          <p className="text-[10px] text-white/60 font-semibold tracking-wider uppercase mt-0.5 truncate">
-                            <span className="text-blue-300">EEE</span> • NIT Patna
-                          </p>
-                          <a
-                            href="https://www.linkedin.com/in/kanuri-sathish-kumar-289756330/"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 bg-[#0077b5]/20 hover:bg-[#0077b5]/40 text-blue-300 border border-[#0077b5]/40 rounded-lg px-2.5 py-1 transition-all hover:scale-105 w-fit mt-1.5"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
-                              <rect x="2" y="9" width="4" height="12"></rect>
-                              <circle cx="4" cy="4" r="2"></circle>
-                            </svg>
-                            <span className="text-[10px] font-bold tracking-wider uppercase">Connect</span>
-                          </a>
-                        </div>
+                    <div className="bg-black/20 border border-white/5 rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center gap-4 hover:bg-white/5 transition-colors shadow-lg">
+                      <div className="w-24 h-24 shrink-0 rounded-full overflow-hidden border-4 border-white/10 shadow-xl">
+                        <img
+                          src="/sathish.jpeg"
+                          alt="Sathish Kumar"
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
                       </div>
+                      <div className="flex flex-col items-center w-full">
+                        <h4 className="text-xl font-bold text-white leading-tight">Sathish Kumar</h4>
+                        <p className="text-[10px] sm:text-xs text-white/60 font-semibold tracking-wider uppercase mt-1">
+                          <span className="text-blue-300">EEE</span> • NIT Patna
+                        </p>
+                        <a
+                          href="https://www.linkedin.com/in/kanuri-sathish-kumar-289756330/"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 bg-[#0077b5]/20 hover:bg-[#0077b5]/40 text-blue-300 border border-[#0077b5]/40 rounded-xl px-4 py-2 transition-all hover:scale-105 w-fit mt-3 shadow-lg shadow-blue-500/10"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                            <rect x="2" y="9" width="4" height="12"></rect>
+                            <circle cx="4" cy="4" r="2"></circle>
+                          </svg>
+                          <span className="text-[11px] font-bold tracking-wider uppercase">Connect</span>
+                        </a>
+                      </div>
+                      <div className="h-px w-full bg-white/5 my-2" />
                       <p className="text-sm text-white/60 leading-relaxed">
-                        Sathish spent countless hours testing the dashboard to identify bugs and usability issues. By putting himself in the shoes of an everyday user, he provided invaluable suggestions that inspired many of the automated features you see today. His dedication to refining the user experience has been instrumental in shaping this project.
+                        Sathish spent countless hours testing the dashboard to identify bugs and usability issues. By putting himself in the shoes of an everyday user, he provided invaluable suggestions that inspired many of the automated features you see today.
                       </p>
                     </div>
 
                     {/* Jyothir Ganesh */}
-                    <div className="bg-black/20 border border-white/5 rounded-2xl p-5 flex flex-col gap-4 hover:bg-white/5 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 shrink-0 rounded-full overflow-hidden border-2 border-white/10 shadow-lg">
-                          <img
-                            src="/jyothir.png"
-                            alt="Jyothir Ganesh"
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                        </div>
-                        <div className="flex flex-col flex-1 min-w-0">
-                          <h4 className="text-lg font-bold text-white truncate leading-tight">Jyothir Ganesh</h4>
-                          <p className="text-[10px] text-white/60 font-semibold tracking-wider uppercase mt-0.5 truncate">
-                            <span className="text-blue-300">ECE</span> • Vishnu Institute of Technology, Bhimavaram
-                          </p>
-                          <a
-                            href="https://www.linkedin.com/in/jyothirganesh-kanuboyina/"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 bg-[#0077b5]/20 hover:bg-[#0077b5]/40 text-blue-300 border border-[#0077b5]/40 rounded-lg px-2.5 py-1 transition-all hover:scale-105 w-fit mt-1.5"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
-                              <rect x="2" y="9" width="4" height="12"></rect>
-                              <circle cx="4" cy="4" r="2"></circle>
-                            </svg>
-                            <span className="text-[10px] font-bold tracking-wider uppercase">Connect</span>
-                          </a>
-                        </div>
+                    <div className="bg-black/20 border border-white/5 rounded-3xl p-6 sm:p-8 flex flex-col items-center text-center gap-4 hover:bg-white/5 transition-colors shadow-lg">
+                      <div className="w-24 h-24 shrink-0 rounded-full overflow-hidden border-4 border-white/10 shadow-xl">
+                        <img
+                          src="/jyothir.png"
+                          alt="Jyothir Ganesh"
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
                       </div>
+                      <div className="flex flex-col items-center w-full">
+                        <h4 className="text-xl font-bold text-white leading-tight">Jyothir Ganesh</h4>
+                        <p className="text-[10px] sm:text-xs text-white/60 font-semibold tracking-wider uppercase mt-1">
+                          <span className="text-blue-300">ECE</span> • Vishnu Institute
+                        </p>
+                        <a
+                          href="https://www.linkedin.com/in/jyothirganesh-kanuboyina/"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 bg-[#0077b5]/20 hover:bg-[#0077b5]/40 text-blue-300 border border-[#0077b5]/40 rounded-xl px-4 py-2 transition-all hover:scale-105 w-fit mt-3 shadow-lg shadow-blue-500/10"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                            <rect x="2" y="9" width="4" height="12"></rect>
+                            <circle cx="4" cy="4" r="2"></circle>
+                          </svg>
+                          <span className="text-[11px] font-bold tracking-wider uppercase">Connect</span>
+                        </a>
+                      </div>
+                      <div className="h-px w-full bg-white/5 my-2" />
                       <p className="text-sm text-white/60 leading-relaxed">
-                        More than just a close friend since our school days, Jyothir has always been my strongest pillar of support—and occasionally my biggest competitor! He never hesitates to speak the truth and give me grounded, factual advice exactly when I need it most. His unwavering encouragement keeps me pushing forward.
+                        More than just a close friend since our school days, Jyothir has always been my strongest pillar of support. He never hesitates to speak the truth and give me grounded, factual advice exactly when I need it most.
                       </p>
                     </div>
                   </div>

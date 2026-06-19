@@ -168,6 +168,9 @@ interface DashboardState {
   // Timetable
   timetableGrid: TimetableGrid;
   updateTimetableCell: (day: string, time: string, subject: string) => void;
+  weekdayTimes: string[];
+  weekendTimes: string[];
+  updateTimetableTime: (isWeekend: boolean, index: number, newTime: string) => void;
   isTimetableOpen: boolean;
   setIsTimetableOpen: (isOpen: boolean) => void;
 
@@ -602,6 +605,32 @@ export const useDashboardStore = create<DashboardState>()(
           }
         }
       })),
+      weekdayTimes: ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"],
+      weekendTimes: ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"],
+      updateTimetableTime: (isWeekend, index, newTime) => set((state) => {
+        const targetArray = isWeekend ? state.weekendTimes : state.weekdayTimes;
+        const fallbackArray = ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"];
+        const timesList = targetArray || fallbackArray;
+        const newTimes = [...timesList];
+        const oldTime = newTimes[index];
+        newTimes[index] = newTime;
+        
+        // Also update the timetableGrid keys to preserve data
+        const newGrid = { ...state.timetableGrid };
+        const targetDays = isWeekend ? ["Sat", "Sun"] : ["Mon", "Tue", "Wed", "Thu", "Fri"];
+        
+        targetDays.forEach(day => {
+          if (newGrid[day] && newGrid[day][oldTime] !== undefined) {
+            newGrid[day] = { ...newGrid[day] };
+            newGrid[day][newTime] = newGrid[day][oldTime];
+            delete newGrid[day][oldTime];
+          }
+        });
+
+        return isWeekend 
+          ? { weekendTimes: newTimes, timetableGrid: newGrid }
+          : { weekdayTimes: newTimes, timetableGrid: newGrid };
+      }),
       isTimetableOpen: false,
       setIsTimetableOpen: (isOpen) => set({ isTimetableOpen: isOpen }),
 
