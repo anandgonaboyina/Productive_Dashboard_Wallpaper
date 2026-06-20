@@ -63,6 +63,9 @@ echo [2/5] BACKING UP DATABASE TO PREVENT DATA LOSS...
 if not exist "data_backup" mkdir "data_backup"
 if exist "prisma\dev.db" (
     copy /y prisma\dev.db data_backup\dev.db >nul
+    if exist "prisma\dev.db-journal" copy /y prisma\dev.db-journal data_backup\dev.db-journal >nul
+    if exist "prisma\dev.db-wal" copy /y prisma\dev.db-wal data_backup\dev.db-wal >nul
+    if exist "prisma\dev.db-shm" copy /y prisma\dev.db-shm data_backup\dev.db-shm >nul
     echo Database backed up safely.
 ) else (
     echo No database found to backup.
@@ -90,6 +93,9 @@ echo.
 echo [4/5] RESTORING DATABASE...
 if exist "data_backup\dev.db" (
     copy /y data_backup\dev.db prisma\dev.db >nul
+    if exist "data_backup\dev.db-journal" copy /y data_backup\dev.db-journal prisma\dev.db-journal >nul
+    if exist "data_backup\dev.db-wal" copy /y data_backup\dev.db-wal prisma\dev.db-wal >nul
+    if exist "data_backup\dev.db-shm" copy /y data_backup\dev.db-shm prisma\dev.db-shm >nul
     echo Database restored successfully.
 )
 
