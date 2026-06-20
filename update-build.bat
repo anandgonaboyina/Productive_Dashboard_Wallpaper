@@ -60,8 +60,9 @@ echo Server and Wallpaper stopped.
 
 echo.
 echo [2/5] BACKING UP DATABASE TO PREVENT DATA LOSS...
+if not exist "data_backup" mkdir "data_backup"
 if exist "prisma\dev.db" (
-    copy /y prisma\dev.db prisma\dev.db.backup >nul
+    copy /y prisma\dev.db data_backup\dev.db >nul
     echo Database backed up safely.
 ) else (
     echo No database found to backup.
@@ -87,8 +88,8 @@ echo Update pulled successfully.
 
 echo.
 echo [4/5] RESTORING DATABASE...
-if exist "prisma\dev.db.backup" (
-    copy /y prisma\dev.db.backup prisma\dev.db >nul
+if exist "data_backup\dev.db" (
+    copy /y data_backup\dev.db prisma\dev.db >nul
     echo Database restored successfully.
 )
 
