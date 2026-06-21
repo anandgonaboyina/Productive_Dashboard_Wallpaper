@@ -34,7 +34,7 @@ export interface Plan {
   category: string;
   duration: string;
   endDate: string;
-  thumbnailBase64: string; // aggressively compressed data URL
+
   subTopics: SubTopic[];
 }
 
@@ -76,9 +76,9 @@ interface DashboardState {
   isStatsOpen: boolean;
   toggleStats: () => void;
   isSettingsOpen: boolean;
-  settingsActiveTab: 'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about' | 'update' | 'focus' | 'sound' | 'credits';
+  settingsActiveTab: 'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about' | 'update' | 'focus' | 'sound' | 'credits' | 'connect' | 'feedback';
   toggleSettings: () => void;
-  setSettingsActiveTab: (tab: 'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about' | 'update' | 'focus' | 'sound' | 'credits') => void;
+  setSettingsActiveTab: (tab: 'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about' | 'update' | 'focus' | 'sound' | 'credits' | 'connect' | 'feedback') => void;
   timerTrigger: { mins: number; ts: number; taskId?: string; taskTitle?: string } | null;
   triggerTimer: (mins: number, taskId?: string, taskTitle?: string) => void;
 
@@ -155,7 +155,7 @@ interface DashboardState {
 
   // Deadlines
   deadlines: Deadline[];
-  addDeadline: (date: string, text: string) => void;
+  addDeadline: (date: string, text: string) => string;
   updateDeadline: (id: string, text: string) => void;
   deleteDeadline: (id: string) => void;
   deleteAllDeadlinesForDay: (date: string) => void;
@@ -165,12 +165,20 @@ interface DashboardState {
   dismissedDeadlineAlerts: string[];
   dismissDeadlineAlert: (id: string) => void;
 
+  // Broadcasts
+  dismissedBroadcasts: string[];
+  dismissBroadcast: (id: string) => void;
+
   // Timetable
   timetableGrid: TimetableGrid;
   updateTimetableCell: (day: string, time: string, subject: string) => void;
   weekdayTimes: string[];
   weekendTimes: string[];
   updateTimetableTime: (isWeekend: boolean, index: number, newTime: string) => void;
+  addTimetableRow: (isWeekend: boolean) => void;
+  deleteTimetableRow: (isWeekend: boolean, index: number) => void;
+  useTimetableRange: boolean;
+  toggleTimetableRange: () => void;
   isTimetableOpen: boolean;
   setIsTimetableOpen: (isOpen: boolean) => void;
 
@@ -260,32 +268,49 @@ interface DashboardState {
 // data survives PC reboots in Lively Wallpaper (WebView2 wipes localStorage).
 // Falls back to localStorage when the API is unavailable (e.g. offline dev).
 // ---------------------------------------------------------------------------
-const getActiveProfileId = () => {
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+const getSyncToken = () => {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('dashboard-active-profile') || '1';
+    return localStorage.getItem('dashboard_sync_token');
   }
-  return '1';
+  return null;
 };
 
-// Global flag to prevent wiping the database if Next.js API is offline during HMR
-let failedToLoadDB = false;
+const getSyncLastModified = () => {
+  if (typeof window !== 'undefined') {
+    return Number(localStorage.getItem('dashboard_last_modified') || '0');
+  }
+  return 0;
+};
 
-// Tracking unsaved changes to prevent race conditions with DB sync
+const setSyncLastModified = (timestamp: number) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('dashboard_last_modified', timestamp.toString());
+  }
+};
+
+let failedToLoadDB = false;
 export let hasUnsavedChanges = false;
 let saveTimeout: NodeJS.Timeout | null = null;
 let pendingValue: string | null = null;
+let lastSavedValue: string | null = null;
 let isSaving = false;
+export let isSyncingFromCloud = false;
 
 const performSave = async () => {
-  if (!pendingValue) return;
+  if (!pendingValue || isSyncingFromCloud) {
+    saveTimeout = null;
+    return;
+  }
   const valueToSave = pendingValue;
   isSaving = true;
   
   if (failedToLoadDB) {
-    localStorage.setItem(`dashboard-storage-${getActiveProfileId()}`, valueToSave);
     if (pendingValue === valueToSave) {
       pendingValue = null;
       hasUnsavedChanges = false;
+      saveTimeout = null;
     } else {
       saveTimeout = setTimeout(performSave, 500);
     }
@@ -295,30 +320,103 @@ const performSave = async () => {
   
   let success = false;
   try {
-    const res = await fetch('/api/store', {
+    const lastModified = getSyncLastModified();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const token = getSyncToken();
+    
+    if (!token && process.env.NEXT_PUBLIC_IS_LOCAL !== 'true') {
+      // Offline mode for CLOUD version only: Data is already saved to localStorage in setItem.
+      // Do not attempt to hit /api/store.
+      setSyncLastModified(lastModified);
+      pendingValue = null;
+      hasUnsavedChanges = false;
+      saveTimeout = null;
+      isSaving = false;
+      return;
+    }
+    
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${apiUrl}/api/store`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profileId: getActiveProfileId(), data: JSON.parse(valueToSave) }),
+      headers,
+      body: JSON.stringify({ data: JSON.parse(valueToSave), lastModified }),
     });
+
+    if (res.status === 401) {
+      // Server requires auth and we don't have it (or it expired). Stop saving to cloud.
+      pendingValue = null;
+      hasUnsavedChanges = false;
+      saveTimeout = null;
+      isSaving = false;
+      return;
+    }
+
+    if (res.status === 409) {
+      // Conflict! Cloud is newer, but we have local changes. SMART MERGE them!
+      const json = await res.json();
+      const parsedCloud = json.cloudData;
+      const parsedLocal = JSON.parse(valueToSave);
+      
+      const mergedState = {
+        ...parsedCloud.state,
+        ...parsedLocal.state, // Local scalar settings win
+        
+        // Intelligently merge arrays to prevent data loss
+        tasks: [...(parsedCloud.state.tasks || []), ...(parsedLocal.state.tasks || [])].filter((t: any, i: number, a: any[]) => a.findIndex(x => x.id === t.id) === i),
+        countdowns: [...(parsedCloud.state.countdowns || []), ...(parsedLocal.state.countdowns || [])].filter((t: any, i: number, a: any[]) => a.findIndex(x => x.id === t.id) === i),
+        deadlines: [...(parsedCloud.state.deadlines || []), ...(parsedLocal.state.deadlines || [])].filter((t: any, i: number, a: any[]) => a.findIndex(x => x.id === t.id) === i),
+        notes: [...(parsedCloud.state.notes || []), ...(parsedLocal.state.notes || [])].filter((t: any, i: number, a: any[]) => a.findIndex(x => x.id === t.id) === i),
+        stopwatchSessions: [...(parsedCloud.state.stopwatchSessions || []), ...(parsedLocal.state.stopwatchSessions || [])],
+        plans: [...(parsedCloud.state.plans || []), ...(parsedLocal.state.plans || [])].filter((t: any, i: number, a: any[]) => a.findIndex(x => x.id === t.id) === i),
+      };
+      
+      const mergedData = { version: 2, state: mergedState };
+      const mergedStr = JSON.stringify(mergedData);
+      
+      isSyncingFromCloud = true;
+      setSyncLastModified(Date.now());
+      localStorage.setItem('dashboard-storage', mergedStr);
+      useDashboardStore.setState(mergedState);
+      setTimeout(() => { isSyncingFromCloud = false; }, 500);
+      
+      // Re-queue the merged data to save to cloud
+      pendingValue = mergedStr;
+      hasUnsavedChanges = true;
+      saveTimeout = setTimeout(performSave, 500);
+      
+      isSaving = false;
+      return;
+    }
+
     if (!res.ok) {
       throw new Error(`API save failed with status ${res.status}`);
     }
+
+    const json = await res.json();
+    setSyncLastModified(json.lastModified);
     success = true;
+    lastSavedValue = valueToSave; // Update the last saved reference
   } catch (err) {
     console.warn("Failed to save to DB, storing locally:", err);
-    localStorage.setItem(`dashboard-storage-${getActiveProfileId()}`, valueToSave);
+    lastSavedValue = valueToSave;
   } finally {
     isSaving = false;
     if (success) {
       if (pendingValue === valueToSave) {
         pendingValue = null;
         hasUnsavedChanges = false;
+        saveTimeout = null;
       } else {
         saveTimeout = setTimeout(performSave, 500);
       }
     } else {
+      // If we failed to save to the DB, we already saved to localStorage as fallback.
+      // We should NOT retry infinitely, otherwise it spams the server.
       if (pendingValue === valueToSave) {
-        saveTimeout = setTimeout(performSave, 2000);
+        pendingValue = null;
+        hasUnsavedChanges = false;
+        saveTimeout = null;
       } else {
         saveTimeout = setTimeout(performSave, 500);
       }
@@ -330,36 +428,120 @@ const fileStorage = createJSONStorage(() => ({
   getItem: async (_name: string): Promise<string | null> => {
     if (typeof window === 'undefined') return null;
     
-    // Retry loop to handle the race condition where Lively Wallpaper loads before the Next.js API is fully booted
     let retries = 0;
+    const token = getSyncToken();
+    
+    // Fast path: if not logged in AND not in local mode, there is no DB to connect to! Offline mode!
+    if (!token && process.env.NEXT_PUBLIC_IS_LOCAL !== 'true') {
+      const localData = localStorage.getItem('dashboard-storage');
+      if (!localData) {
+        failedToLoadDB = true;
+        localStorage.setItem('dashboard_unverified', 'true');
+      }
+      return localData;
+    }
+    
     while (retries < 15) {
       try {
-        const res = await fetch(`/api/store?profileId=${getActiveProfileId()}`, { cache: 'no-store' });
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(`${apiUrl}/api/store`, { 
+          headers,
+          cache: 'no-store' 
+        });
+
+        if (res.status === 401) {
+          // We are unauthorized, so the server requires a token and we don't have a valid one.
+          break;
+        }
+
         if (res.ok) {
           const json = await res.json();
-          // If the API returns explicitly null data (new profile), we MUST return null 
-          // so Zustand starts from the default empty state, instead of falling back to old localStorage.
-          if (json.data === null) return null;
-          if (json.data) return JSON.stringify(json.data);
+          const localDataStr = localStorage.getItem('dashboard-storage');
+          const localTimestampStr = localStorage.getItem('dashboard_last_modified');
+          const isUnverified = localStorage.getItem('dashboard_unverified') === 'true';
+
+          // If cloud data is null (new account), we MUST return localData so they don't lose progress!
+          if (json.data === null) {
+            lastSavedValue = localDataStr;
+            
+            // Push defaults/local to cloud to initialize it
+            if (localDataStr) {
+               pendingValue = localDataStr;
+               hasUnsavedChanges = true;
+               if (!saveTimeout) saveTimeout = setTimeout(performSave, 500);
+            }
+            localStorage.removeItem('dashboard_unverified');
+            return localDataStr;
+          }
+
+          if (json.data) {
+            let useLocal = false;
+            // Only trust local offline data if it didn't start from an unverified (empty) state
+            if (localDataStr && localTimestampStr && !isUnverified) {
+              const localTime = parseInt(localTimestampStr);
+              // If local is newer than cloud (offline changes), we keep local and force sync to cloud!
+              if (localTime > json.lastModified) {
+                useLocal = true;
+                pendingValue = localDataStr;
+                hasUnsavedChanges = true;
+                if (!saveTimeout) saveTimeout = setTimeout(performSave, 500);
+                console.log("Local offline data is newer! Pushing to cloud.");
+              }
+            }
+
+            if (useLocal) {
+              lastSavedValue = localDataStr;
+              return localDataStr;
+            } else {
+              setSyncLastModified(json.lastModified);
+              isSyncingFromCloud = true;
+              setTimeout(() => { isSyncingFromCloud = false; }, 1000);
+              const str = JSON.stringify(json.data);
+              // ensure local cache perfectly matches cloud
+              localStorage.setItem('dashboard-storage', str);
+              localStorage.removeItem('dashboard_unverified');
+              lastSavedValue = str;
+              return str;
+            }
+          }
         }
       } catch {
-        console.warn(`Database API not ready yet, retrying... (${retries + 1}/15)`);
+        console.warn(`Database API not ready yet, retrying... (${retries + 1})`);
       }
+      
+      const localData = localStorage.getItem('dashboard-storage');
+      // If we have local data, we can fallback to it after some retries.
+      // If we DONT have local data (e.g. Lively wiped it), we MUST keep retrying infinitely
+      // to avoid initializing an empty state that wipes the cloud DB!
+      // But only if we have a token OR we are expecting to sync locally
+      if (!localData && (token || process.env.NEXT_PUBLIC_IS_LOCAL === 'true')) {
+        // Infinite retry until MongoDB connects
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        continue;
+      }
+      
       retries++;
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    // Fall back to localStorage only if API is completely offline after retries
-    console.warn("Failed to fetch store from DB after retries, falling back to localStorage.");
-    const localData = localStorage.getItem(`dashboard-storage-${getActiveProfileId()}`);
+    console.warn("Failed to fetch store from DB after retries or no token, falling back to localStorage.");
+    const localData = localStorage.getItem('dashboard-storage');
     if (!localData) {
-      // If both DB and localStorage are empty/offline, we set a flag so we don't accidentally overwrite the DB with an empty state later.
-      failedToLoadDB = true;
+      failedToLoadDB = true; // Prevent any writes to cloud if we start with completely empty unverified state
+      localStorage.setItem('dashboard_unverified', 'true');
     }
+    lastSavedValue = localData;
     return localData;
   },
   setItem: async (_name: string, value: string): Promise<void> => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || isSyncingFromCloud) return;
+    if (value === lastSavedValue) return; // Prevent overwriting DB with unchanged hydration state
+    
+    // ALWAYS save locally first so offline restarts have immediate latest data!
+    localStorage.setItem('dashboard-storage', value);
+
     pendingValue = value;
     hasUnsavedChanges = true;
     
@@ -370,13 +552,24 @@ const fileStorage = createJSONStorage(() => ({
   removeItem: async (_name: string): Promise<void> => {
     if (typeof window === 'undefined') return;
     try {
+      const token = getSyncToken();
+      if (!token && process.env.NEXT_PUBLIC_IS_LOCAL !== 'true') {
+        localStorage.removeItem('dashboard-storage');
+        return;
+      }
+
+      const headers: Record<string, string> = { 
+        'Content-Type': 'application/json'
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       await fetch('/api/store', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileId: getActiveProfileId(), data: null }),
+        headers,
+        body: JSON.stringify({ data: null, lastModified: Date.now() }),
       });
     } catch { 
-      localStorage.removeItem(`dashboard-storage-${getActiveProfileId()}`);
+      localStorage.removeItem('dashboard-storage');
     }
   },
 }));
@@ -612,9 +805,13 @@ export const useDashboardStore = create<DashboardState>()(
 
       // Deadlines
       deadlines: [],
-      addDeadline: (date, text) => set((state) => ({
-        deadlines: [...state.deadlines, { id: Date.now().toString() + Math.random().toString(36).substr(2, 5), date, text }]
-      })),
+      addDeadline: (date, text) => {
+        const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+        set((state) => ({
+          deadlines: [...state.deadlines, { id, date, text }]
+        }));
+        return id;
+      },
       updateDeadline: (id, text) => set((state) => ({
         deadlines: state.deadlines.map(d => d.id === id ? { ...d, text } : d)
       })),
@@ -626,12 +823,20 @@ export const useDashboardStore = create<DashboardState>()(
       })),
       deleteAllDeadlines: () => set({ deadlines: [] }),
       
-      deadlineAlertDays: 0,
-      setDeadlineAlertDays: (days) => set({ deadlineAlertDays: Math.max(0, days) }),
+      deadlineAlertDays: 3,
+      setDeadlineAlertDays: (days) => set({ deadlineAlertDays: days }),
       dismissedDeadlineAlerts: [],
       dismissDeadlineAlert: (id) => set((state) => ({
-        dismissedDeadlineAlerts: Array.from(new Set([...state.dismissedDeadlineAlerts, id]))
+        dismissedDeadlineAlerts: [...state.dismissedDeadlineAlerts, id]
       })),
+
+      dismissedBroadcasts: [],
+      dismissBroadcast: (id) => set((state) => {
+        if (!state.dismissedBroadcasts.includes(id)) {
+          return { dismissedBroadcasts: [...state.dismissedBroadcasts, id] };
+        }
+        return state;
+      }),
 
       // Timetable
       timetableGrid: {
@@ -678,6 +883,47 @@ export const useDashboardStore = create<DashboardState>()(
           ? { weekendTimes: newTimes, timetableGrid: newGrid }
           : { weekdayTimes: newTimes, timetableGrid: newGrid };
       }),
+      addTimetableRow: (isWeekend) => set((state) => {
+        const targetArray = isWeekend ? state.weekendTimes : state.weekdayTimes;
+        const fallbackArray = ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"];
+        const timesList = targetArray || fallbackArray;
+        
+        let newTime = "06:00 PM";
+        if (timesList.length > 0) {
+          const lastTime = timesList[timesList.length - 1];
+          const match = lastTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+          if (match) {
+            let h = parseInt(match[1]);
+            const ampm = h === 11 ? (match[3].toUpperCase() === "AM" ? "PM" : "AM") : match[3].toUpperCase();
+            h = h === 12 ? 1 : h + 1;
+            newTime = `${h.toString().padStart(2, '0')}:${match[2]} ${ampm}`;
+          }
+        }
+        
+        const newTimes = [...timesList, newTime];
+        return isWeekend ? { weekendTimes: newTimes } : { weekdayTimes: newTimes };
+      }),
+      deleteTimetableRow: (isWeekend, index) => set((state) => {
+        const targetArray = isWeekend ? state.weekendTimes : state.weekdayTimes;
+        const timesList = targetArray || ["09:00 AM"];
+        const oldTime = timesList[index];
+        const newTimes = timesList.filter((_, i) => i !== index);
+        
+        const newGrid = { ...state.timetableGrid };
+        const targetDays = isWeekend ? ["Sat", "Sun"] : ["Mon", "Tue", "Wed", "Thu", "Fri"];
+        targetDays.forEach(day => {
+          if (newGrid[day] && newGrid[day][oldTime] !== undefined) {
+            newGrid[day] = { ...newGrid[day] };
+            delete newGrid[day][oldTime];
+          }
+        });
+        
+        return isWeekend 
+          ? { weekendTimes: newTimes, timetableGrid: newGrid }
+          : { weekdayTimes: newTimes, timetableGrid: newGrid };
+      }),
+      useTimetableRange: true,
+      toggleTimetableRange: () => set((state) => ({ useTimetableRange: !state.useTimetableRange })),
       isTimetableOpen: false,
       setIsTimetableOpen: (isOpen) => set({ isTimetableOpen: isOpen }),
 
@@ -685,7 +931,9 @@ export const useDashboardStore = create<DashboardState>()(
       healthData: {},
       fetchHealthData: async () => {
         try {
-          const res = await fetch(`/api/health?profileId=${getActiveProfileId()}`);
+          const res = await fetch(`${apiUrl}/api/health`, {
+            headers: { 'Authorization': `Bearer ${getSyncToken()}` }
+          });
           if (res.ok) {
             const json = await res.json();
             if (json.data) {
@@ -713,10 +961,13 @@ export const useDashboardStore = create<DashboardState>()(
         });
 
         // Background API sync
-        fetch('/api/health', {
+        fetch(`${apiUrl}/api/health`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profileId: getActiveProfileId(), dateKey, metric, incrementValue })
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getSyncToken()}`
+          },
+          body: JSON.stringify({ dateKey, metric, incrementValue })
         }).catch(err => console.error("Failed to sync health data", err));
       },
 
@@ -848,8 +1099,14 @@ export const useDashboardStore = create<DashboardState>()(
 
       clearOldData: async (days: number) => {
         try {
-          const profileId = getActiveProfileId();
-          await fetch(`/api/health?profileId=${profileId}&action=olderThan&days=${days}`, { method: 'DELETE' });
+          const token = getSyncToken();
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+
+          await fetch(`${apiUrl}/api/health?action=olderThan&days=${days}`, { 
+            method: 'DELETE',
+            headers 
+          });
           
           set((state) => {
             const newHistory = { ...state.history };
@@ -880,14 +1137,20 @@ export const useDashboardStore = create<DashboardState>()(
 
       clearAllData: async () => {
         try {
-          const profileId = getActiveProfileId();
-          await fetch(`/api/health?profileId=${profileId}&action=deleteAll`, { method: 'DELETE' });
-          await fetch('/api/store', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ profileId, data: null })
+          const token = getSyncToken();
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+
+          await fetch(`${apiUrl}/api/health?action=deleteAll`, { 
+            method: 'DELETE',
+            headers
           });
-          localStorage.removeItem(`dashboard-storage-${profileId}`);
+          await fetch(`${apiUrl}/api/store`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ data: null })
+          });
+          localStorage.removeItem('dashboard-storage');
           window.location.reload();
         } catch (err) {
           console.error("Failed to clear all data", err);

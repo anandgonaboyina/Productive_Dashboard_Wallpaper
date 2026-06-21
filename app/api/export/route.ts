@@ -1,27 +1,63 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import clientPromise from '@/lib/mongodb';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const profileId = parseInt(searchParams.get('profileId') || '1');
-    const name = searchParams.get('name') || `profile-${profileId}`;
+    const queryToken = searchParams.get('token');
+    
+    let token = '';
+    const authHeader = request.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else if (queryToken) {
+      token = queryToken;
+    }
 
-    const record = await prisma.dashboardStorage.findUnique({
-      where: { id: profileId },
-    });
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    let decoded: { userId: string; username: string };
+    
+    if (token === 'local' && process.env.IS_LOCAL === 'true') {
+      decoded = { userId: 'local_default_user', username: 'local_user' };
+    } else {
+      decoded = jwt.verify(token, JWT_SECRET) as { userId: string; username: string };
+    }
+
+    const client = await clientPromise;
+    const db = client.db();
+
+    const record = await db.collection('DashboardStorage').findOne({ userId: decoded.userId });
     
     if (!record) {
       return NextResponse.json({ error: 'No data found' }, { status: 404 });
     }
     
-    const jsonString = JSON.stringify(JSON.parse(record.data), null, 2);
+    let returnedData;
+    if (record.data && typeof record.data === 'string') {
+      returnedData = JSON.parse(record.data);
+    } else {
+      const { _id, userId, lastModified, updatedAt, version, displaySettings, generalSettings, ...coreData } = record;
+      const reconstructedState = {
+        ...coreData,
+        ...(displaySettings || {}),
+        ...(generalSettings || {})
+      };
+      returnedData = { state: reconstructedState, version: version || 2 };
+    }
+    
+    const jsonString = JSON.stringify(returnedData, null, 2);
     
     return new NextResponse(jsonString, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename="dashboard-backup-${encodeURIComponent(name)}.json"`,
+        'Content-Disposition': `attachment; filename="dashboard-backup-${encodeURIComponent(decoded.username)}.json"`,
       },
     });
   } catch (error) {

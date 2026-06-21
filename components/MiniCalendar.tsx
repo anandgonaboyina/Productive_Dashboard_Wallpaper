@@ -121,32 +121,43 @@ export default function MiniCalendar() {
             {dayDeadlines.map(d => (
               <div key={d.id} className="flex gap-2 items-center bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 focus-within:border-blue-500/30 transition-all group shadow-sm">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_red] py-1 shrink-0" />
-                {editingDeadlineId === d.id || !d.text.trim() ? (
-                  <input
-                    type="text"
+                {editingDeadlineId === d.id ? (
+                  <textarea
                     value={d.text}
-                    onChange={e => updateDeadline(d.id, e.target.value)}
+                    onChange={e => {
+                      updateDeadline(d.id, e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
                     onBlur={() => { 
                       if (!d.text.trim()) deleteDeadline(d.id); 
                       setEditingDeadlineId(null);
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
                         if (!d.text.trim()) deleteDeadline(d.id);
                         setEditingDeadlineId(null);
                       }
                     }}
-                    className="flex-1 bg-transparent outline-none text-white/90 text-sm h-8 leading-tight placeholder:text-white/30 border-b border-white/20 transition-colors"
+                    ref={el => {
+                      if (el) {
+                        el.style.height = 'auto';
+                        el.style.height = el.scrollHeight + 'px';
+                      }
+                    }}
+                    className="flex-1 bg-transparent outline-none text-white/90 text-sm leading-tight placeholder:text-white/30 border-b border-white/20 transition-colors resize-none overflow-hidden py-1.5"
                     placeholder="Enter deadline here..."
                     autoFocus
+                    rows={1}
                   />
                 ) : (
                   <div 
                     onDoubleClick={() => setEditingDeadlineId(d.id)}
                     title="Double click to edit"
-                    className="flex-1 text-white/90 text-sm leading-tight cursor-grab truncate py-1.5"
+                    className="flex-1 text-white/90 text-sm leading-tight cursor-grab py-1.5 break-words whitespace-pre-wrap"
                   >
-                    {d.text}
+                    {d.text || <span className="text-white/30 italic">Empty deadline</span>}
                   </div>
                 )}
                 <button
@@ -165,7 +176,10 @@ export default function MiniCalendar() {
           </ScrollableWithArrows>
           <div className="mt-2 pt-2 border-t border-white/10">
             <button
-              onClick={() => addDeadline(selectedDate, "")}
+              onClick={() => {
+                const newId = addDeadline(selectedDate, "");
+                setEditingDeadlineId(newId);
+              }}
               className="w-full py-2 flex items-center justify-center gap-1.5 text-xs font-bold text-white/70 bg-white/5 hover:bg-white/10 hover:text-white rounded-xl transition-all border border-dashed border-white/20 hover:border-white/40"
             >
               <Plus size={14} /> ADD DEADLINE

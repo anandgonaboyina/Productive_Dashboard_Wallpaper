@@ -167,17 +167,9 @@ function GalleryView({ groupedPlans, onSelect }: { groupedPlans: Record<string, 
                   onClick={() => onSelect(plan.id)}
                   className="group relative h-48 rounded-2xl overflow-hidden cursor-pointer border border-white/10 hover:border-white/30 transition-all hover:-translate-y-1 hover:shadow-2xl shadow-black/50"
                 >
-                  {/* Background Thumbnail */}
-                  {plan.thumbnailBase64 ? (
-                    <div
-                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                      style={{ backgroundImage: `url("${plan.thumbnailBase64}")`, backgroundColor: '#1f2937' }}
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-900 transition-transform duration-700 group-hover:scale-110 flex items-center justify-center p-4">
-                       <span className="text-white/20 font-bold text-3xl text-center uppercase tracking-widest leading-none drop-shadow-md break-words">{plan.title}</span>
-                    </div>
-                  )}
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-900 transition-transform duration-700 group-hover:scale-110 flex items-center justify-center p-4">
+                     <span className="text-white/20 font-bold text-3xl text-center uppercase tracking-widest leading-none drop-shadow-md break-words">{plan.title}</span>
+                  </div>
                   {/* Top Middle Days Left Badge */}
                   <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 w-full flex justify-center pointer-events-none">
                     {diffDays > 0 ? (
@@ -233,33 +225,6 @@ function AddPlanView({ onAdd, onCancel }: { onAdd: (plan: Plan) => void, onCance
   const [category, setCategory] = useState('');
   const [duration, setDuration] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [thumb, setThumb] = useState('');
-  const [loading, setLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/thumbnails', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) {
-        setThumb(data.url);
-      } else {
-        alert('Upload failed: ' + data.error);
-      }
-    } catch (err) {
-      console.error('Failed to upload image', err);
-      alert('Upload failed');
-    }
-    setLoading(false);
-  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,7 +235,6 @@ function AddPlanView({ onAdd, onCancel }: { onAdd: (plan: Plan) => void, onCance
       category: category.trim(),
       duration: duration.trim(),
       endDate: endDate,
-      thumbnailBase64: thumb,
       subTopics: []
     });
   };
@@ -325,33 +289,7 @@ function AddPlanView({ onAdd, onCancel }: { onAdd: (plan: Plan) => void, onCance
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-white/70 font-medium">Cover Thumbnail <span className="text-white/30 text-xs font-normal">(Optional)</span></label>
-        <div className="flex items-center gap-4 bg-black/20 p-4 rounded-xl border border-white/10">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl transition-all text-white font-medium shadow-sm shrink-0"
-          >
-             <Upload size={18} /> {loading ? 'Uploading...' : 'Upload Image'}
-          </button>
-          
-          {thumb ? (
-            <div className="flex items-center gap-2 text-green-400 font-medium">
-              <CheckCircle size={18} /> <span className="text-sm">Image uploaded successfully</span>
-            </div>
-          ) : (
-            <span className="text-xs text-white/40 leading-tight">If skipped, the Plan Title will be used as a beautiful text fallback!</span>
-          )}
-        </div>
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleImage}
-        />
-      </div>
+
 
       <div className="flex justify-end gap-3 mt-4">
         <button type="button" onClick={onCancel} className="px-6 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/10 font-medium transition-colors">
@@ -400,13 +338,9 @@ function DetailView({ plan, onAddSub, onToggleSub, onDeleteSub, onDeletePlan }: 
       {/* Left Column: Visuals & Progress */}
       <div className="w-1/3 flex flex-col gap-6 shrink-0">
         <div className="w-full aspect-square rounded-3xl overflow-hidden border border-white/10 shadow-2xl relative">
-          {plan.thumbnailBase64 ? (
-            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url("${plan.thumbnailBase64}")`, backgroundColor: '#1f2937' }} />
-          ) : (
              <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-900 flex items-center justify-center p-4">
                <span className="text-white/20 font-bold text-4xl text-center uppercase tracking-widest leading-none drop-shadow-md break-words">{plan.title}</span>
              </div>
-          )}
           {/* Top Middle Days Left Badge */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-full flex justify-center pointer-events-none">
             {diffDays > 0 ? (

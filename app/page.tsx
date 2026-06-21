@@ -20,6 +20,8 @@ import SettingsModal from "@/components/SettingsModal";
 import RightToolbar from "@/components/RightToolbar";
 import DeadlineAlerts from "@/components/DeadlineAlerts";
 import StartupUpdateChecker from "@/components/StartupUpdateChecker";
+import FriendRequestPopup from "@/components/FriendRequestPopup";
+import GlobalBroadcastPopup from "@/components/GlobalBroadcastPopup";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, CalendarDays, Settings } from "lucide-react";
 import { useDashboardStore, hasUnsavedChanges } from "@/store/dashboardStore";
@@ -117,25 +119,35 @@ export default function Dashboard() {
     };
   }, [showQuotePopup]);
 
-  // Sync state across Chrome and Lively Wallpaper
-  useEffect(() => {
-    const syncState = () => {
-      // Only pull from DB if user isn't actively typing in an input field.
-      // This prevents typing overwrites while typing in Notes/Tasks, but ensures 
-      // Lively Wallpaper ALWAYS polls reliably regardless of window focus state.
-      // We also check hasUnsavedChanges to avoid pulling old DB state while local saves are pending.
-      const activeTag = document.activeElement?.tagName.toLowerCase();
-      const isTyping = activeTag === 'input' || activeTag === 'textarea';
 
-      if (!isTyping && !hasUnsavedChanges) {
-        useDashboardStore.persist.rehydrate();
+
+  useEffect(() => {
+    // Attempt to recover session for Lively Wallpaper (which wipes localStorage on reboot)
+    const recoverSession = async () => {
+      try {
+        const token = localStorage.getItem('dashboard_sync_token');
+        if (!token) {
+          const res = await fetch('/api/session', { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.token && data.username) {
+              localStorage.setItem('dashboard_sync_token', data.token);
+              localStorage.setItem('dashboard_username', data.username);
+              // Force reload so Zustand boots up with the recovered token
+              window.location.reload();
+            }
+          } else if (res.status >= 500 || !res.ok) {
+            // If the server is down (e.g. MongoDB not started yet), retry in 3 seconds
+            setTimeout(recoverSession, 3000);
+          }
+        }
+      } catch (err) {
+        console.error('Session recovery failed:', err);
+        // Retry on network failure (MongoDB down)
+        setTimeout(recoverSession, 3000);
       }
     };
-
-    // Check for updates every 3 seconds to keep Lively Wallpaper perfectly synced
-    const syncInterval = setInterval(syncState, 3000);
-
-    return () => clearInterval(syncInterval);
+    recoverSession();
   }, []);
 
   if (!_hasHydrated) {
@@ -199,7 +211,12 @@ export default function Dashboard() {
                   ))}
 
                   <button
-                    onClick={() => setIsCountdownsExpanded(!isCountdownsExpanded)}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsCountdownsExpanded(!isCountdownsExpanded);
+                    }}
                     className="flex items-center justify-center p-1.5 text-white/40 hover:text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/10"
                     title={isCountdownsExpanded ? "Hide extra targets" : "Show all targets"}
                   >
@@ -296,6 +313,12 @@ export default function Dashboard() {
 
       {/* Auto Update Checker (Runs silently on boot) */}
       <StartupUpdateChecker />
+
+      {/* Global Friend Request Notification */}
+      <FriendRequestPopup />
+
+      {/* Global Developer Broadcast Notification */}
+      <GlobalBroadcastPopup />
 
     </main>
   );

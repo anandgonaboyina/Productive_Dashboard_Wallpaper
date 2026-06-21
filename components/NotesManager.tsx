@@ -8,6 +8,12 @@ function EditorBlock({ date, initialHtml, onChange }: { date: string; initialHtm
   const editorRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const onChangeRef = useRef(onChange);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
   useEffect(() => {
     // Only set initial HTML once when mounting to prevent cursor jumps
     if (editorRef.current && editorRef.current.innerHTML === '') {
@@ -15,6 +21,10 @@ function EditorBlock({ date, initialHtml, onChange }: { date: string; initialHtm
     }
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      // Ensure we save when the component unmounts (e.g. modal closed)
+      if (editorRef.current) {
+        onChangeRef.current(editorRef.current.innerHTML);
+      }
     };
   }, [initialHtml]);
 
@@ -22,15 +32,15 @@ function EditorBlock({ date, initialHtml, onChange }: { date: string; initialHtm
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       if (editorRef.current) {
-        onChange(editorRef.current.innerHTML);
+        onChangeRef.current(editorRef.current.innerHTML);
       }
-    }, 300);
+    }, 30000); // Wait 30 seconds of inactivity before auto-saving
   };
 
   const handleBlur = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
+      onChangeRef.current(editorRef.current.innerHTML);
     }
   };
 

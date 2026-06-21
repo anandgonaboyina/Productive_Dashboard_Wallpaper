@@ -6,35 +6,56 @@ export interface Quote {
 }
 
 let recentIndices: number[] = [];
+let dbFetchAttempted = false;
 
 export async function fetchQuote(): Promise<Quote> {
-  try {
-    // Attempt to fetch from DummyJSON API (highly reliable and free)
-    const res = await fetch('https://dummyjson.com/quotes/random', { 
-      cache: 'no-store',
-      // Short timeout so we don't hang the UI if it's down
-      signal: AbortSignal.timeout(3000) 
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.quote) {
-        return { text: data.quote, author: data.author };
+  // Sync quotes from DB to local storage ONLY ONCE per reload
+  if (!dbFetchAttempted) {
+    dbFetchAttempted = true;
+    try {
+      const res = await fetch('/api/quotes', { 
+        cache: 'no-store',
+        signal: AbortSignal.timeout(3000) 
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.quotes && data.quotes.length > 0) {
+          // Clean up the authors and structure them
+          const cleanedQuotes = data.quotes.map((q: any) => ({
+            text: q.text,
+            author: (q.author || 'Unknown').replace(', type.fit', '')
+          }));
+          localStorage.setItem('dashboard_cached_quotes', JSON.stringify(cleanedQuotes));
+        }
       }
+    } catch (err) {
+      console.warn('Quote sync failed, will rely on local cache or fallback JSON');
     }
-  } catch (err) {
-    console.warn('Quote API failed, falling back to local JSON dataset');
   }
 
-  // Fallback to our robust local JSON
-  let randomIndex = Math.floor(Math.random() * fallbackQuotes.length);
-  
-  // Prevent repetitions for the last 20 quotes (or half the array, whichever is smaller)
-  const maxRecent = Math.min(20, Math.floor(fallbackQuotes.length / 2));
+  // Retrieve quotes from localStorage cache, fallback to robust JSON
+  let sourceArray: Quote[] = [];
+  try {
+    const cached = localStorage.getItem('dashboard_cached_quotes');
+    if (cached) {
+      sourceArray = JSON.parse(cached);
+    }
+  } catch (e) {
+    console.warn('Cache corrupted, using fallback');
+  }
+
+  if (!sourceArray || sourceArray.length === 0) {
+    sourceArray = fallbackQuotes as Quote[];
+  }
+
+  // Pick a random quote avoiding immediate repeats
+  let randomIndex = Math.floor(Math.random() * sourceArray.length);
+  const maxRecent = Math.min(20, Math.floor(sourceArray.length / 2));
   
   let attempts = 0;
   while (recentIndices.includes(randomIndex) && attempts < 10) {
-    randomIndex = Math.floor(Math.random() * fallbackQuotes.length);
+    randomIndex = Math.floor(Math.random() * sourceArray.length);
     attempts++;
   }
   
@@ -43,12 +64,10 @@ export async function fetchQuote(): Promise<Quote> {
     recentIndices.shift(); // Remove oldest
   }
 
-  // type.fit format is { text: string, author: string }
-  const q = fallbackQuotes[randomIndex] as { text: string; author: string | null };
+  const q = sourceArray[randomIndex];
   
   return {
     text: q.text || 'Keep pushing forward.',
-    // Clean up type.fit suffix bug
     author: (q.author || 'Unknown').replace(', type.fit', ''), 
   };
 }

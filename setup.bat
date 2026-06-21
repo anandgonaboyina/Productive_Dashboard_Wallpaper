@@ -124,17 +124,39 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [4/6] Configuring local SQLite database (Zero Setup Required!)...
-echo Creating .env file automatically...
-echo DATABASE_URL="file:./dev.db" > .env
-call npx prisma generate
-call npx prisma db push
-if %errorlevel% neq 0 (
-    color 0C
-    echo ERROR: Database setup failed.
-    pause
-    exit
+echo [4/6] Configuring local MongoDB database (Zero Setup Required!)...
+if not exist "mongodb\bin\mongod.exe" (
+    echo Downloading MongoDB Community Edition ^(this may take a few minutes^)...
+    curl.exe -o mongodb.zip -L https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-7.0.14.zip
+    if !errorlevel! neq 0 (
+        color 0C
+        echo ERROR: Failed to download MongoDB.
+        pause
+        exit /b 1
+    )
+    echo Extracting MongoDB...
+    tar.exe -xf mongodb.zip
+    
+    :: The zip extracts to a folder like mongodb-windows-x86_64-7.0.14 or mongodb-win32-x86_64-...
+    for /d %%I in (mongodb-win*-x86_64-*) do (
+        move "%%I" "mongodb"
+    )
+    del mongodb.zip
+    echo MongoDB installed locally!
+) else (
+    echo MongoDB is already installed locally!
 )
+
+if not exist "data\db" (
+    echo Creating MongoDB data directory...
+    mkdir "data\db"
+)
+
+echo Creating .env file automatically...
+echo DATABASE_URL="mongodb://127.0.0.1:27017/productivedashboard" > .env
+echo IS_LOCAL="true" >> .env
+echo NEXT_PUBLIC_IS_LOCAL="true" >> .env
+echo JWT_SECRET="local-secret-key" >> .env
 
 echo.
 echo [5/6] Building the dashboard for production...
@@ -215,6 +237,8 @@ echo         WScript.Sleep 30000 >> start-server.vbs
 echo     End If >> start-server.vbs
 echo End If >> start-server.vbs
 echo WshShell.CurrentDirectory = "%CURRENT_DIR%" >> start-server.vbs
+echo WshShell.Run "mongodb\bin\mongod.exe --dbpath data\db --port 27017", 0, False >> start-server.vbs
+echo WScript.Sleep 5000 >> start-server.vbs
 echo WshShell.Run "npm start", 0, False >> start-server.vbs
 
 echo Generating start-lively.vbs (60s delay)...

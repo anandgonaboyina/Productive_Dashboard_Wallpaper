@@ -148,11 +148,6 @@ export default function VideoBackground() {
             loop
             muted={isVideoMuted}
             playsInline
-            onPlay={(e) => {
-              if (!isVideoPlaying) {
-                e.currentTarget.pause();
-              }
-            }}
           />
           {/* Controls */}
           {!isPanicHidden && (!isHidden || !hideConfig.videoControls) && showVideoControls && (

@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useDashboardStore } from '@/store/dashboardStore';
-import { X, Upload, Trash2, Image as ImageIcon, Settings as SettingsIcon, MonitorPlay, Clock, Users, Plus, Eye, EyeOff, Download, UploadCloud, Activity, MessageSquare, Timer as TimerIcon, Hourglass, Film, User, BadgeCheck, Send, Briefcase, Calendar, CheckSquare, Flame, ChevronUp, ChevronDown, Database, Bell, RefreshCw, AlertTriangle, CheckCircle, BarChart2, Map, StickyNote, CalendarDays, Layout } from 'lucide-react';
+import { X, Upload, Trash2, Image as ImageIcon, Settings as SettingsIcon, MonitorPlay, Clock, Users, Plus, Eye, EyeOff, Download, UploadCloud, Activity, MessageSquare, Timer as TimerIcon, Hourglass, Film, User, BadgeCheck, Send, Briefcase, Calendar, CheckSquare, Flame, ChevronUp, ChevronDown, Database, Bell, RefreshCw, AlertTriangle, CheckCircle, BarChart2, Map, StickyNote, CalendarDays, Layout, Globe, Star, Bug } from 'lucide-react';
+import ConnectTab from './ConnectTab';
+import ScrollableWithArrows from './ScrollableWithArrows';
 
 const DEFAULT_WALLPAPERS = [
   'itachi-uchiha.png', 'kakashi.mp4', 'kakashi2.mp4', 'kakashi3.png',
@@ -40,7 +42,60 @@ export default function SettingsModal() {
   const [deleteDays, setDeleteDays] = useState<number>(60);
   const upiId = 'gonaboyinaanandkumar@ybl';
 
+  const [feedbackType, setFeedbackType] = useState('feature');
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [mySubmissions, setMySubmissions] = useState<any[]>([]);
+
+  const fetchMySubmissions = async () => {
+    try {
+      const token = localStorage.getItem('dashboard_sync_token');
+      if (!token) return;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/roadmap`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) setMySubmissions(data.mySubmissions || []);
+    } catch (_) {}
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackMessage.trim()) return alert("Please enter a message first.");
+    
+    setIsSubmittingFeedback(true);
+    try {
+      let token = localStorage.getItem('dashboard_sync_token');
+      if (!token && process.env.NEXT_PUBLIC_IS_LOCAL === 'true') {
+        token = 'local'; // allow local unauthenticated feedback if backend supports it
+      }
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ type: feedbackType, message: feedbackMessage })
+      });
+      
+      if (res.ok) {
+        setFeedbackSuccess(true);
+        setFeedbackMessage('');
+        setTimeout(() => setFeedbackSuccess(false), 3000);
+        fetchMySubmissions();
+      } else {
+        alert("Failed to submit feedback. You must be logged in.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error.");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
   const [wallpapers, setWallpapers] = useState<{ type: string, src: string, filename: string }[]>([]);
+  const [friendStats, setFriendStats] = useState<{username: string, stats: any} | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,6 +133,12 @@ export default function SettingsModal() {
       }, 100);
     }
   }, [isSettingsOpen, settingsActiveTab]);
+
+  useEffect(() => {
+    if (settingsActiveTab === 'feedback') {
+      fetchMySubmissions();
+    }
+  }, [settingsActiveTab]);
 
   // Drag to scroll logic for SettingsModal
   const isDragging = useRef(false);
@@ -412,12 +473,18 @@ export default function SettingsModal() {
 
   const handleExportData = () => {
     try {
-      const activeProfileName = profiles.find(p => p.id.toString() === activeProfileId)?.name || `profile-${activeProfileId}`;
-      const exportUrl = `/api/export?profileId=${activeProfileId}&name=${encodeURIComponent(activeProfileName)}`;
+      let token = localStorage.getItem('dashboard_sync_token');
+      if (!token && process.env.NEXT_PUBLIC_IS_LOCAL !== 'true') {
+        alert('You must be logged in to export data. Please login via the Connect tab.');
+        return;
+      }
+      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const exportUrl = `${apiUrl}/api/export?token=${token}`;
       window.open(exportUrl, '_blank');
     } catch (err) {
       console.error(err);
-      alert('Failed to export data');
+      alert('Failed to export data.');
     }
   };
 
@@ -425,34 +492,54 @@ export default function SettingsModal() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!confirm('Are you sure? This will OVERWRITE your current profile data with the imported file.')) {
-      e.target.value = '';
-      return;
-    }
-
     try {
+      let token = localStorage.getItem('dashboard_sync_token');
+      if (!token && process.env.NEXT_PUBLIC_IS_LOCAL !== 'true') {
+        alert('You must be logged in to import data. Please login via the Connect tab.');
+        e.target.value = '';
+        return;
+      }
+      if (!token) token = 'local';
+
       const text = await file.text();
       const parsed = JSON.parse(text);
 
-      // Strict safety check: Ensure it's a valid Zustand backup file
       if (typeof parsed !== 'object' || parsed === null || !('state' in parsed)) {
         alert('Invalid backup file. Missing required dashboard data structure.');
         e.target.value = '';
         return;
       }
 
-      const res = await fetch('/api/store', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileId: activeProfileId, data: parsed })
-      });
+      const isMerge = confirm('Do you want to MERGE this backup with your current data?\n\nClick OK to MERGE (Combine old and new data without losing existing settings).\nClick Cancel to OVERWRITE entirely (Wipe existing data and replace it with the backup).');
 
-      if (res.ok) {
-        alert('Import successful! Reloading...');
-        window.location.reload();
-      } else {
-        alert('Import failed. Server rejected the data.');
+      let finalData = parsed;
+
+      if (isMerge) {
+        const currentState = useDashboardStore.getState();
+        finalData = {
+          version: parsed.version || 2,
+          state: {
+            ...currentState, 
+            ...parsed.state, 
+            
+            // Intelligently merge arrays to prevent data loss (deduplicate by id)
+            tasks: [...(currentState.tasks || []), ...(parsed.state.tasks || [])].filter((t, i, a) => a.findIndex(x => x.id === t.id) === i),
+            countdowns: [...(currentState.countdowns || []), ...(parsed.state.countdowns || [])].filter((t, i, a) => a.findIndex(x => x.id === t.id) === i),
+            deadlines: [...(currentState.deadlines || []), ...(parsed.state.deadlines || [])].filter((t, i, a) => a.findIndex(x => x.id === t.id) === i),
+            notes: [...(currentState.notes || []), ...(parsed.state.notes || [])].filter((t, i, a) => a.findIndex(x => x.id === t.id) === i),
+            stopwatchSessions: [...(currentState.stopwatchSessions || []), ...(parsed.state.stopwatchSessions || [])],
+            plans: [...(currentState.plans || []), ...(parsed.state.plans || [])].filter((t, i, a) => a.findIndex(x => x.id === t.id) === i),
+          }
+        };
       }
+
+      // Just update the store. The `dashboardStore` persistence layer will automatically 
+      // detect this and safely push it to the background MongoDB / API without any race conditions!
+      useDashboardStore.setState(finalData.state || finalData);
+      alert('Import successful! Your dashboard has been updated.');
+      
+      // Close settings modal
+      useDashboardStore.setState({ isSettingsOpen: false });
     } catch (err) {
       console.error(err);
       alert('Invalid JSON file format.');
@@ -563,11 +650,25 @@ export default function SettingsModal() {
               Data & Backup
             </button>
             <button
+              onClick={() => setSettingsActiveTab('connect')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${settingsActiveTab === 'connect' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
+            >
+              <Globe size={20} className={settingsActiveTab === 'connect' ? 'text-blue-400 animate-pulse' : ''} />
+              Connect & News
+            </button>
+            <button
               onClick={() => setSettingsActiveTab('update')}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${settingsActiveTab === 'update' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
             >
               <RefreshCw size={20} />
               Dashboard Update
+            </button>
+            <button
+              onClick={() => setSettingsActiveTab('feedback')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${settingsActiveTab === 'feedback' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' : 'text-white/60 hover:bg-white/5 hover:text-white border border-transparent'}`}
+            >
+              <Bug size={20} />
+              Feedback & Bugs
             </button>
             <button
               onClick={() => setSettingsActiveTab('credits')}
@@ -710,6 +811,8 @@ export default function SettingsModal() {
                 </div>
               )}
 
+              {settingsActiveTab === 'connect' && <ConnectTab friendStats={friendStats} setFriendStats={setFriendStats} />}
+
               {settingsActiveTab === 'wallpapers' && (
                 <div className="flex flex-col gap-6">
                   <div className="flex items-center justify-between">
@@ -780,7 +883,7 @@ export default function SettingsModal() {
                             {bg.type === 'image' ? (
                               <img src={bg.src} alt={bg.filename} className="w-full h-full object-cover" />
                             ) : (
-                              <video src={bg.src} className="w-full h-full object-cover" />
+                              <video src={bg.src} preload="none" className="w-full h-full object-cover" />
                             )}
 
                             {/* Overlay */}
@@ -841,7 +944,7 @@ export default function SettingsModal() {
                             {bg.type === 'image' ? (
                               <img src={bg.src} alt={bg.filename} className="w-full h-full object-cover" />
                             ) : (
-                              <video src={bg.src} className="w-full h-full object-cover" />
+                              <video src={bg.src} preload="none" className="w-full h-full object-cover" />
                             )}
 
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
@@ -1353,6 +1456,104 @@ export default function SettingsModal() {
                         })}
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {settingsActiveTab === 'feedback' && (
+                <div className="flex flex-col gap-6 h-full overflow-y-auto arrow-scrollbar pb-10">
+                  <div>
+                    <h3 className="text-xl font-semibold flex items-center gap-2">
+                      <Bug size={20} className="text-orange-400" />
+                      Feedback & Bug Reports
+                    </h3>
+                    <p className="text-white/50 text-sm mt-1">Help us improve the dashboard! Submit feature requests or report issues directly to the developer.</p>
+                  </div>
+                  
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-semibold text-white/80">Type</label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setFeedbackType('feature')}
+                          className={`flex-1 py-2 px-3 rounded-lg text-sm transition-colors border ${feedbackType === 'feature' ? 'bg-orange-500/20 border-orange-500/50 text-orange-100' : 'bg-black/40 border-white/10 text-white/60 hover:bg-white/5'}`}
+                        >
+                          💡 Feature
+                        </button>
+                        <button
+                          onClick={() => setFeedbackType('bug')}
+                          className={`flex-1 py-2 px-3 rounded-lg text-sm transition-colors border ${feedbackType === 'bug' ? 'bg-orange-500/20 border-orange-500/50 text-orange-100' : 'bg-black/40 border-white/10 text-white/60 hover:bg-white/5'}`}
+                        >
+                          🐛 Bug
+                        </button>
+                        <button
+                          onClick={() => setFeedbackType('other')}
+                          className={`flex-1 py-2 px-3 rounded-lg text-sm transition-colors border ${feedbackType === 'other' ? 'bg-orange-500/20 border-orange-500/50 text-orange-100' : 'bg-black/40 border-white/10 text-white/60 hover:bg-white/5'}`}
+                        >
+                          💬 General
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-semibold text-white/80">Message</label>
+                      <textarea 
+                        rows={5}
+                        value={feedbackMessage}
+                        onChange={(e) => setFeedbackMessage(e.target.value)}
+                        placeholder="Describe your idea or the issue you encountered..." 
+                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-sm outline-none focus:border-orange-500/50 transition-all placeholder:text-white/40 resize-none"
+                      />
+                    </div>
+                    
+                    <button 
+                      onClick={handleFeedbackSubmit}
+                      disabled={isSubmittingFeedback || feedbackSuccess}
+                      className={`self-end px-6 py-2 font-bold rounded-lg text-sm transition-colors shadow-lg flex items-center gap-2 ${feedbackSuccess ? 'bg-green-500 text-white' : 'bg-orange-500/80 hover:bg-orange-500 text-white'}`}
+                    >
+                      {isSubmittingFeedback ? <RefreshCw size={16} className="animate-spin" /> : feedbackSuccess ? <CheckCircle size={16} /> : <Send size={16} />} 
+                      {feedbackSuccess ? 'Sent!' : 'Submit Feedback'}
+                    </button>
+                  </div>
+
+                  {/* My Submissions Status */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-semibold text-white/80">My Submission Status</label>
+                      <button onClick={fetchMySubmissions} className="text-xs text-white/40 hover:text-white/70 transition-colors flex items-center gap-1">
+                        <RefreshCw size={12} /> Refresh
+                      </button>
+                    </div>
+                    {mySubmissions.length === 0 ? (
+                      <p className="text-white/30 text-xs italic text-center py-3 bg-black/20 rounded-lg">No submissions yet — submit above to track status!</p>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {mySubmissions.map((item: any) => {
+                          const statusConfig: Record<string, { label: string; color: string; dot: string }> = {
+                            pending:          { label: 'Under Review', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10', dot: 'bg-yellow-400' },
+                            reviewed:         { label: 'Reviewed',     color: 'text-blue-400 border-blue-500/30 bg-blue-500/10',       dot: 'bg-blue-400' },
+                            added_to_roadmap: { label: '✓ On Roadmap!',color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10', dot: 'bg-emerald-400' },
+                          };
+                          const s = statusConfig[item.status] || { label: item.status, color: 'text-white/40 border-white/10 bg-white/5', dot: 'bg-white/20' };
+                          return (
+                            <div key={item.id} className="bg-black/30 border border-white/10 p-3 rounded-xl flex items-start justify-between gap-3">
+                              <div className="flex flex-col gap-1">
+                                <p className="text-white/70 text-xs leading-relaxed">{item.message}</p>
+                                {item.createdAt && (
+                                  <span className="text-[10px] text-white/40">
+                                    {new Date(item.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                                  </span>
+                                )}
+                              </div>
+                              <span className={`text-[10px] font-bold px-2 py-1 rounded-full border shrink-0 flex items-center gap-1.5 ${s.color}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`}></span>
+                                {s.label}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1982,6 +2183,168 @@ export default function SettingsModal() {
           </div>
         </div>
       </div>
+
+      {friendStats && (() => {
+        const calculateHistory = (days: number) => {
+          if (!friendStats?.stats?.history) return 0;
+          let total = 0;
+          const today = new Date();
+          for (let i = 0; i < days; i++) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            total += friendStats.stats.history[dateStr] || 0;
+          }
+          return total;
+        };
+        
+        const formatMins = (totalMins: number) => {
+          if (totalMins < 60) return `${totalMins}m`;
+          const hrs = Math.floor(totalMins / 60);
+          const mins = totalMins % 60;
+          return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+        };
+        
+        const raw1 = calculateHistory(1);
+        const raw7 = calculateHistory(7);
+        const raw30 = calculateHistory(30);
+        
+        const todayMins = formatMins(raw1);
+        const sevenDaysMins = formatMins(raw7);
+        const monthMins = formatMins(raw30);
+        
+        const sevenDaysAvg = formatMins(Math.round(raw7 / 7));
+        const monthAvg = formatMins(Math.round(raw30 / 30));
+        
+        const allTasks = friendStats.stats?.tasks || [];
+        const allDeadlines = friendStats.stats?.deadlines || [];
+        const timetableGridData = friendStats.stats?.timetableGrid || {};
+        const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+        const hasTimetable = weekDays.some(day => Object.values(timetableGridData[day] || {}).some(subj => subj));
+
+        return (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-xl p-4 sm:p-6 animate-in fade-in duration-300 pointer-events-auto">
+            <div 
+              className="absolute inset-0 bg-transparent" 
+              onClick={() => setFriendStats(null)}
+            />
+            <div className="bg-[#111111]/80 backdrop-blur-md border border-white/10 w-full max-w-4xl h-[80vh] rounded-3xl overflow-hidden shadow-2xl relative flex flex-col animate-in zoom-in-95 duration-300">
+              <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5 shrink-0">
+                <div>
+                  <h4 className="font-bold text-2xl flex items-center gap-3 text-white">
+                    <BarChart2 className="text-blue-400" size={28} /> {friendStats.username}
+                  </h4>
+                  <div className="flex items-center gap-3 mt-2 text-xs font-medium">
+                    {friendStats.stats?.createdAt && (
+                      <span className="bg-white/10 text-white/70 px-2.5 py-1 rounded-md">
+                        Joined {new Date(friendStats.stats.createdAt).toLocaleDateString()}
+                      </span>
+                    )}
+                    {friendStats.stats?.lastLogin && (
+                      <span className="bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-500/20">
+                        Last Active: {new Date(friendStats.stats.lastLogin).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button onClick={() => setFriendStats(null)} className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white/50 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="relative flex-1 overflow-hidden flex flex-col">
+                <ScrollableWithArrows className="p-6 flex flex-col gap-8">
+                
+                {/* Work History */}
+                <div>
+                  <h5 className="text-sm font-bold text-white/50 uppercase tracking-widest mb-3">Work History</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-gradient-to-br from-blue-900/40 to-blue-900/10 border border-blue-500/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-lg shadow-blue-500/5 relative overflow-hidden">
+                      <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl"></div>
+                      <span className="text-4xl font-black text-blue-400 mb-2 drop-shadow-md relative z-10">{todayMins}</span>
+                      <span className="text-xs font-bold text-blue-400/50 uppercase tracking-widest relative z-10">Today</span>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-900/40 to-purple-900/10 border border-purple-500/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-lg shadow-purple-500/5 relative overflow-hidden">
+                      <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl"></div>
+                      <span className="text-4xl font-black text-purple-400 mb-1 drop-shadow-md relative z-10">{sevenDaysMins}</span>
+                      <span className="text-xs text-white/50 mb-2 relative z-10">Avg: {sevenDaysAvg}/day</span>
+                      <span className="text-[10px] font-bold text-purple-400/50 uppercase tracking-widest relative z-10">7 Days</span>
+                    </div>
+                    <div className="bg-gradient-to-br from-emerald-900/40 to-emerald-900/10 border border-emerald-500/20 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-lg shadow-emerald-500/5 relative overflow-hidden">
+                      <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
+                      <span className="text-4xl font-black text-emerald-400 mb-1 drop-shadow-md relative z-10">{monthMins}</span>
+                      <span className="text-xs text-white/50 mb-2 relative z-10">Avg: {monthAvg}/day</span>
+                      <span className="text-[10px] font-bold text-emerald-400/50 uppercase tracking-widest relative z-10">30 Days</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Tasks */}
+                  <div>
+                    <h5 className="text-sm font-bold text-white/50 uppercase tracking-widest mb-3 flex items-center gap-2">
+                      Tasks <span className="bg-white/10 text-white/70 px-2 py-0.5 rounded-full text-[10px]">{allTasks.length}</span>
+                    </h5>
+                    <div className="bg-black/40 border border-white/5 rounded-xl p-4 flex flex-col gap-2">
+                      {allTasks.length === 0 ? (
+                        <p className="text-white/40 text-xs italic text-center py-4">No tasks found.</p>
+                      ) : (
+                        allTasks.map((t: any) => (
+                          <div key={t.id} className="flex flex-col gap-2 text-sm text-white/80 bg-white/5 p-3 rounded-lg border border-white/5 break-words whitespace-pre-wrap leading-relaxed">
+                            <div className="flex items-start justify-between gap-2">
+                              <span className={t.completed ? 'line-through text-white/40' : ''}>{t.title || t.text}</span>
+                              {t.completed && (
+                                <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded uppercase font-bold shrink-0">Done</span>
+                              )}
+                            </div>
+                            {(t.duration > 0 || t.timeSpent > 0) && (
+                              <div className="flex items-center gap-2 text-[10px] text-white/40 font-medium">
+                                <span className="bg-white/10 px-1.5 py-0.5 rounded">
+                                  Time: {formatMins(t.timeSpent || 0)} / {formatMins(t.duration || 0)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Timetable Overview */}
+                  <div>
+                    <h5 className="text-sm font-bold text-white/50 uppercase tracking-widest mb-3">Timetable (Weekdays)</h5>
+                    <div className="bg-black/40 border border-white/5 rounded-xl p-4 flex flex-col gap-2">
+                      {!hasTimetable ? (
+                        <p className="text-white/40 text-xs italic text-center py-4">No timetable set.</p>
+                      ) : (
+                        weekDays.map(day => {
+                          const dayData = timetableGridData[day] || {};
+                          const activeTimes = Object.entries(dayData).filter(([_, subj]) => subj);
+                          if (activeTimes.length === 0) return null;
+                          return (
+                            <div key={day} className="flex flex-col gap-1 text-xs border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                              <span className="text-blue-400 font-bold">{day}</span>
+                              <div className="flex flex-wrap gap-1">
+                                {activeTimes.map(([time, subject]) => (
+                                  <span key={time} className="bg-white/10 px-1.5 py-0.5 rounded text-white/80">
+                                    <span className="text-white/40 mr-1">{time}</span>{subject as string}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="text-center text-white/40 text-[10px] italic mt-auto pt-4 border-t border-white/10 shrink-0">Only public focus statistics are shared between friends.</p>
+                </ScrollableWithArrows>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
