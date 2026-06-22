@@ -75,10 +75,16 @@ interface DashboardState {
   toggleTaskManager: () => void;
   isStatsOpen: boolean;
   toggleStats: () => void;
+  isTimerOpen: boolean;
+  toggleTimer: () => void;
+  isCalendarOpen: boolean;
+  toggleCalendar: () => void;
+  isClockOpen: boolean;
+  toggleClock: () => void;
   isSettingsOpen: boolean;
-  settingsActiveTab: 'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about' | 'update' | 'focus' | 'sound' | 'credits' | 'connect' | 'feedback';
+  settingsActiveTab: 'preferences' | 'data' | 'about' | 'focus' | 'sound' | 'credits' | 'connect' | 'feedback' | 'update';
   toggleSettings: () => void;
-  setSettingsActiveTab: (tab: 'wallpapers' | 'preferences' | 'profiles' | 'data' | 'about' | 'update' | 'focus' | 'sound' | 'credits' | 'connect' | 'feedback') => void;
+  setSettingsActiveTab: (tab: 'preferences' | 'data' | 'about' | 'focus' | 'sound' | 'credits' | 'connect' | 'feedback' | 'update') => void;
   timerTrigger: { mins: number; ts: number; taskId?: string; taskTitle?: string } | null;
   triggerTimer: (mins: number, taskId?: string, taskTitle?: string) => void;
 
@@ -99,6 +105,14 @@ interface DashboardState {
   isAlarmPlaying: boolean;
   alarmSound: string;
   alarmVolume: number;
+  enableAlarmSound: boolean;
+  enableAlarmVibration: boolean;
+  enablePanicButton: boolean;
+  panicButtonMode: 'redirect' | 'hide';
+  setEnableAlarmSound: (enabled: boolean) => void;
+  setEnableAlarmVibration: (enabled: boolean) => void;
+  setEnablePanicButton: (enabled: boolean) => void;
+  setPanicButtonMode: (mode: 'redirect' | 'hide') => void;
   setTimerEndAt: (time: number | null) => void;
   setTimerPausedLeft: (time: number | null) => void;
   setTimerInitialMins: (mins: number | null) => void;
@@ -155,7 +169,7 @@ interface DashboardState {
 
   // Deadlines
   deadlines: Deadline[];
-  addDeadline: (date: string, text: string) => string;
+  addDeadline: (date: string, text: string) => void;
   updateDeadline: (id: string, text: string) => void;
   deleteDeadline: (id: string) => void;
   deleteAllDeadlinesForDay: (date: string) => void;
@@ -164,10 +178,6 @@ interface DashboardState {
   setDeadlineAlertDays: (days: number) => void;
   dismissedDeadlineAlerts: string[];
   dismissDeadlineAlert: (id: string) => void;
-
-  // Broadcasts
-  dismissedBroadcasts: string[];
-  dismissBroadcast: (id: string) => void;
 
   // Timetable
   timetableGrid: TimetableGrid;
@@ -200,6 +210,8 @@ interface DashboardState {
   lockedWidgets: string[];
   toggleWidgetLock: (widgetId: string) => void;
   resetAllOffsets: (bgSrc: string) => void;
+  widgetZIndices: Record<string, number>;
+  bringToFront: (widgetId: string) => void;
 
   currentBgSrc: string | null;
   setCurrentBgSrc: (src: string | null) => void;
@@ -256,6 +268,9 @@ interface DashboardState {
   rightWidgetsOffset: number;
   setRightWidgetsOffset: (offset: number) => void;
 
+  dismissedBroadcasts: string[];
+  dismissBroadcast: (id: string) => void;
+
   clearOldData: (days: number) => Promise<void>;
   clearAllData: () => Promise<void>;
 
@@ -268,8 +283,6 @@ interface DashboardState {
 // data survives PC reboots in Lively Wallpaper (WebView2 wipes localStorage).
 // Falls back to localStorage when the API is unavailable (e.g. offline dev).
 // ---------------------------------------------------------------------------
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
 const getSyncToken = () => {
   if (typeof window !== 'undefined') {
     return localStorage.getItem('dashboard_sync_token');
@@ -297,16 +310,18 @@ let pendingValue: string | null = null;
 let lastSavedValue: string | null = null;
 let isSaving = false;
 export let isSyncingFromCloud = false;
+export let isAuthTransition = false;
+export const setAuthTransition = (val: boolean) => { isAuthTransition = val; };
 
 const performSave = async () => {
-  if (!pendingValue || isSyncingFromCloud) {
+  if (!pendingValue || isSyncingFromCloud || isAuthTransition) {
     saveTimeout = null;
     return;
   }
   const valueToSave = pendingValue;
   isSaving = true;
   
-  if (failedToLoadDB) {
+  if (failedToLoadDB || !getSyncToken()) {
     if (pendingValue === valueToSave) {
       pendingValue = null;
       hasUnsavedChanges = false;
@@ -321,36 +336,14 @@ const performSave = async () => {
   let success = false;
   try {
     const lastModified = getSyncLastModified();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    const token = getSyncToken();
-    
-    if (!token && process.env.NEXT_PUBLIC_IS_LOCAL !== 'true') {
-      // Offline mode for CLOUD version only: Data is already saved to localStorage in setItem.
-      // Do not attempt to hit /api/store.
-      setSyncLastModified(lastModified);
-      pendingValue = null;
-      hasUnsavedChanges = false;
-      saveTimeout = null;
-      isSaving = false;
-      return;
-    }
-    
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    const res = await fetch(`${apiUrl}/api/store`, {
+    const res = await fetch('/api/store', {
       method: 'POST',
-      headers,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getSyncToken()}`
+      },
       body: JSON.stringify({ data: JSON.parse(valueToSave), lastModified }),
     });
-
-    if (res.status === 401) {
-      // Server requires auth and we don't have it (or it expired). Stop saving to cloud.
-      pendingValue = null;
-      hasUnsavedChanges = false;
-      saveTimeout = null;
-      isSaving = false;
-      return;
-    }
 
     if (res.status === 409) {
       // Conflict! Cloud is newer, but we have local changes. SMART MERGE them!
@@ -431,62 +424,37 @@ const fileStorage = createJSONStorage(() => ({
     let retries = 0;
     const token = getSyncToken();
     
-    // Fast path: if not logged in AND not in local mode, there is no DB to connect to! Offline mode!
-    if (!token && process.env.NEXT_PUBLIC_IS_LOCAL !== 'true') {
-      const localData = localStorage.getItem('dashboard-storage');
-      if (!localData) {
-        failedToLoadDB = true;
-        localStorage.setItem('dashboard_unverified', 'true');
+    while (retries < 15 && token) {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        console.warn("Device is offline. Bypassing cloud sync and loading local data instantly.");
+        break;
       }
-      return localData;
-    }
-    
-    while (retries < 15) {
       try {
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const res = await fetch(`${apiUrl}/api/store`, { 
-          headers,
+        const res = await fetch('/api/store', { 
+          headers: { 'Authorization': `Bearer ${token}` },
           cache: 'no-store' 
         });
-
-        if (res.status === 401) {
-          // We are unauthorized, so the server requires a token and we don't have a valid one.
-          break;
-        }
-
         if (res.ok) {
           const json = await res.json();
           const localDataStr = localStorage.getItem('dashboard-storage');
           const localTimestampStr = localStorage.getItem('dashboard_last_modified');
-          const isUnverified = localStorage.getItem('dashboard_unverified') === 'true';
 
           // If cloud data is null (new account), we MUST return localData so they don't lose progress!
           if (json.data === null) {
             lastSavedValue = localDataStr;
-            
-            // Push defaults/local to cloud to initialize it
-            if (localDataStr) {
-               pendingValue = localDataStr;
-               hasUnsavedChanges = true;
-               if (!saveTimeout) saveTimeout = setTimeout(performSave, 500);
-            }
-            localStorage.removeItem('dashboard_unverified');
             return localDataStr;
           }
 
           if (json.data) {
             let useLocal = false;
-            // Only trust local offline data if it didn't start from an unverified (empty) state
-            if (localDataStr && localTimestampStr && !isUnverified) {
+            if (localDataStr && localTimestampStr) {
               const localTime = parseInt(localTimestampStr);
               // If local is newer than cloud (offline changes), we keep local and force sync to cloud!
               if (localTime > json.lastModified) {
                 useLocal = true;
                 pendingValue = localDataStr;
                 hasUnsavedChanges = true;
-                if (!saveTimeout) saveTimeout = setTimeout(performSave, 500);
+                saveTimeout = setTimeout(performSave, 500);
                 console.log("Local offline data is newer! Pushing to cloud.");
               }
             }
@@ -501,42 +469,28 @@ const fileStorage = createJSONStorage(() => ({
               const str = JSON.stringify(json.data);
               // ensure local cache perfectly matches cloud
               localStorage.setItem('dashboard-storage', str);
-              localStorage.removeItem('dashboard_unverified');
               lastSavedValue = str;
               return str;
             }
           }
         }
       } catch {
-        console.warn(`Database API not ready yet, retrying... (${retries + 1})`);
+        console.warn(`Database API not ready yet, retrying... (${retries + 1}/15)`);
       }
-      
-      const localData = localStorage.getItem('dashboard-storage');
-      // If we have local data, we can fallback to it after some retries.
-      // If we DONT have local data (e.g. Lively wiped it), we MUST keep retrying infinitely
-      // to avoid initializing an empty state that wipes the cloud DB!
-      // But only if we have a token OR we are expecting to sync locally
-      if (!localData && (token || process.env.NEXT_PUBLIC_IS_LOCAL === 'true')) {
-        // Infinite retry until MongoDB connects
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        continue;
-      }
-      
       retries++;
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
     console.warn("Failed to fetch store from DB after retries or no token, falling back to localStorage.");
     const localData = localStorage.getItem('dashboard-storage');
-    if (!localData) {
-      failedToLoadDB = true; // Prevent any writes to cloud if we start with completely empty unverified state
-      localStorage.setItem('dashboard_unverified', 'true');
+    if (!localData && !token) {
+      failedToLoadDB = true;
     }
     lastSavedValue = localData;
     return localData;
   },
   setItem: async (_name: string, value: string): Promise<void> => {
-    if (typeof window === 'undefined' || isSyncingFromCloud) return;
+    if (typeof window === 'undefined' || isSyncingFromCloud || isAuthTransition) return;
     if (value === lastSavedValue) return; // Prevent overwriting DB with unchanged hydration state
     
     // ALWAYS save locally first so offline restarts have immediate latest data!
@@ -552,20 +506,12 @@ const fileStorage = createJSONStorage(() => ({
   removeItem: async (_name: string): Promise<void> => {
     if (typeof window === 'undefined') return;
     try {
-      const token = getSyncToken();
-      if (!token && process.env.NEXT_PUBLIC_IS_LOCAL !== 'true') {
-        localStorage.removeItem('dashboard-storage');
-        return;
-      }
-
-      const headers: Record<string, string> = { 
-        'Content-Type': 'application/json'
-      };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
       await fetch('/api/store', {
         method: 'POST',
-        headers,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getSyncToken()}`
+        },
         body: JSON.stringify({ data: null, lastModified: Date.now() }),
       });
     } catch { 
@@ -577,13 +523,13 @@ const fileStorage = createJSONStorage(() => ({
 export const useDashboardStore = create<DashboardState>()(
   persist(
     (set) => ({
-      wallpaper: '/wallpaper.webp',
+      wallpaper: '/wallpapers/naruto.webp',
       bgIndex: 0,
       currentBgType: null,
       lockedWallpaper: null,
       history: {},
       tasks: [],
-      isHidden: false,
+      isHidden: true,
       _hasHydrated: false,
       setHasHydrated: (state) => set({ _hasHydrated: state }),
 
@@ -642,20 +588,67 @@ export const useDashboardStore = create<DashboardState>()(
 
       toggleHide: () => set((state) => ({ isHidden: !state.isHidden })),
 
-      isTaskManagerOpen: false,
-      toggleTaskManager: () => set((state) => ({ isTaskManagerOpen: !state.isTaskManagerOpen })),
+  isTaskManagerOpen: false,
+      toggleTaskManager: () => set((state) => {
+        const next = !state.isTaskManagerOpen;
+        let extra = {};
+        if (next) {
+          const currentZ = state.widgetZIndices || {};
+          const maxZ = Object.values(currentZ).length > 0 ? Math.max(...Object.values(currentZ)) : 50;
+          extra = { widgetZIndices: { ...currentZ, tasks: maxZ + 1 } };
+        }
+        return { isTaskManagerOpen: next, ...extra };
+      }),
       isStatsOpen: false,
       toggleStats: () => set((state) => ({ isStatsOpen: !state.isStatsOpen })),
+      isTimerOpen: false,
+      toggleTimer: () => set((state) => {
+        const next = !state.isTimerOpen;
+        let extra = {};
+        if (next) {
+          const currentZ = state.widgetZIndices || {};
+          const maxZ = Object.values(currentZ).length > 0 ? Math.max(...Object.values(currentZ)) : 50;
+          extra = { widgetZIndices: { ...currentZ, timer: maxZ + 1 } };
+        }
+        return { isTimerOpen: next, ...extra };
+      }),
+      isCalendarOpen: true,
+      toggleCalendar: () => set((state) => {
+        const next = !state.isCalendarOpen;
+        let extra = {};
+        if (next) {
+          const currentZ = state.widgetZIndices || {};
+          const maxZ = Object.values(currentZ).length > 0 ? Math.max(...Object.values(currentZ)) : 50;
+          extra = { widgetZIndices: { ...currentZ, calendar: maxZ + 1 } };
+        }
+        return { isCalendarOpen: next, ...extra };
+      }),
+      isClockOpen: true,
+      toggleClock: () => set((state) => {
+        const next = !state.isClockOpen;
+        let extra = {};
+        if (next) {
+          const currentZ = state.widgetZIndices || {};
+          const maxZ = Object.values(currentZ).length > 0 ? Math.max(...Object.values(currentZ)) : 50;
+          extra = { widgetZIndices: { ...currentZ, clock: maxZ + 1 } };
+        }
+        return { isClockOpen: next, ...extra };
+      }),
       isSettingsOpen: false,
-      settingsActiveTab: 'wallpapers',
+      settingsActiveTab: 'preferences',
       toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
       setSettingsActiveTab: (tab) => set({ settingsActiveTab: tab }),
       timerTrigger: null,
-      triggerTimer: (mins, taskId, taskTitle) => set((state) => ({ 
-        timerTrigger: { mins, ts: Date.now(), taskId, taskTitle },
-        showTimer: true,
-        hideConfig: { ...state.hideConfig, timer: false }
-      })),
+      triggerTimer: (mins, taskId, taskTitle) => set((state) => {
+        const currentZ = state.widgetZIndices || {};
+        const maxZ = Object.values(currentZ).length > 0 ? Math.max(...Object.values(currentZ)) : 50;
+        return { 
+          timerTrigger: { mins, ts: Date.now(), taskId, taskTitle },
+          showTimer: true,
+          hideConfig: { ...state.hideConfig, timer: false },
+          widgetZIndices: { ...currentZ, timer: maxZ + 1 }
+        };
+      }),
 
       activeTaskId: null,
       activeTaskTitle: null,
@@ -678,7 +671,7 @@ export const useDashboardStore = create<DashboardState>()(
       timerLastUpdated: 0,
       isAlarmPlaying: false,
       alarmSound: '/ringtones/alarm.mp3',
-      alarmVolume: 100,
+      alarmVolume: 0.5,
       setTimerEndAt: (time) => set({ timerEndAt: time, timerLastUpdated: Date.now() }),
       setTimerPausedLeft: (time) => set({ timerPausedLeft: time, timerLastUpdated: Date.now() }),
       setTimerInitialMins: (mins) => set({ timerInitialMins: mins, timerLastUpdated: Date.now() }),
@@ -688,6 +681,14 @@ export const useDashboardStore = create<DashboardState>()(
       alarmDurationSecs: 60,
       setAlarmDurationSecs: (secs) => set({ alarmDurationSecs: secs }),
       setAlarmVolume: (vol) => set({ alarmVolume: vol }),
+      enableAlarmSound: true,
+      enableAlarmVibration: true,
+      enablePanicButton: true,
+      panicButtonMode: 'redirect',
+      setEnableAlarmSound: (val) => set({ enableAlarmSound: val }),
+      setEnableAlarmVibration: (val) => set({ enableAlarmVibration: val }),
+      setEnablePanicButton: (val) => set({ enablePanicButton: val }),
+      setPanicButtonMode: (val) => set({ panicButtonMode: val }),
 
       currentQuote: null,
       isQuotePopupOpen: false,
@@ -737,7 +738,16 @@ export const useDashboardStore = create<DashboardState>()(
       // Stopwatch Defaults
       isStopwatchOpen: false,
       stopwatchSessions: [],
-      toggleStopwatch: () => set((state) => ({ isStopwatchOpen: !state.isStopwatchOpen })),
+      toggleStopwatch: () => set((state) => {
+        const next = !state.isStopwatchOpen;
+        let extra = {};
+        if (next) {
+          const currentZ = state.widgetZIndices || {};
+          const maxZ = Object.values(currentZ).length > 0 ? Math.max(...Object.values(currentZ)) : 50;
+          extra = { widgetZIndices: { ...currentZ, stopwatch: maxZ + 1 } };
+        }
+        return { isStopwatchOpen: next, ...extra };
+      }),
       addStopwatchSession: (title, secs, addToStats) => set((state) => {
         const mins = Math.floor(secs / 60);
         
@@ -809,13 +819,9 @@ export const useDashboardStore = create<DashboardState>()(
 
       // Deadlines
       deadlines: [],
-      addDeadline: (date, text) => {
-        const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
-        set((state) => ({
-          deadlines: [...state.deadlines, { id, date, text }]
-        }));
-        return id;
-      },
+      addDeadline: (date, text) => set((state) => ({
+        deadlines: [...state.deadlines, { id: Date.now().toString() + Math.random().toString(36).substr(2, 5), date, text }]
+      })),
       updateDeadline: (id, text) => set((state) => ({
         deadlines: state.deadlines.map(d => d.id === id ? { ...d, text } : d)
       })),
@@ -827,20 +833,12 @@ export const useDashboardStore = create<DashboardState>()(
       })),
       deleteAllDeadlines: () => set({ deadlines: [] }),
       
-      deadlineAlertDays: 3,
-      setDeadlineAlertDays: (days) => set({ deadlineAlertDays: days }),
+      deadlineAlertDays: 0,
+      setDeadlineAlertDays: (days) => set({ deadlineAlertDays: Math.max(0, days) }),
       dismissedDeadlineAlerts: [],
       dismissDeadlineAlert: (id) => set((state) => ({
-        dismissedDeadlineAlerts: [...state.dismissedDeadlineAlerts, id]
+        dismissedDeadlineAlerts: Array.from(new Set([...state.dismissedDeadlineAlerts, id]))
       })),
-
-      dismissedBroadcasts: [],
-      dismissBroadcast: (id) => set((state) => {
-        if (!state.dismissedBroadcasts.includes(id)) {
-          return { dismissedBroadcasts: [...state.dismissedBroadcasts, id] };
-        }
-        return state;
-      }),
 
       // Timetable
       timetableGrid: {
@@ -929,13 +927,21 @@ export const useDashboardStore = create<DashboardState>()(
       useTimetableRange: true,
       toggleTimetableRange: () => set((state) => ({ useTimetableRange: !state.useTimetableRange })),
       isTimetableOpen: false,
-      setIsTimetableOpen: (isOpen) => set({ isTimetableOpen: isOpen }),
+      setIsTimetableOpen: (isOpen) => set((state) => {
+        let extra = {};
+        if (isOpen) {
+          const currentZ = state.widgetZIndices || {};
+          const maxZ = Object.values(currentZ).length > 0 ? Math.max(...Object.values(currentZ)) : 50;
+          extra = { widgetZIndices: { ...currentZ, timetable: maxZ + 1 } };
+        }
+        return { isTimetableOpen: isOpen, ...extra };
+      }),
 
       // Health Rings
       healthData: {},
       fetchHealthData: async () => {
         try {
-          const res = await fetch(`${apiUrl}/api/health`, {
+          const res = await fetch('/api/health', {
             headers: { 'Authorization': `Bearer ${getSyncToken()}` }
           });
           if (res.ok) {
@@ -965,7 +971,7 @@ export const useDashboardStore = create<DashboardState>()(
         });
 
         // Background API sync
-        fetch(`${apiUrl}/api/health`, {
+        fetch('/api/health', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -1013,6 +1019,21 @@ export const useDashboardStore = create<DashboardState>()(
           ? state.lockedWidgets.filter(id => id !== widgetId)
           : [...state.lockedWidgets, widgetId]
       })),
+      widgetZIndices: {},
+      bringToFront: (widgetId) => set((state) => {
+        const currentZIndices = state.widgetZIndices || {};
+        const values = Object.values(currentZIndices);
+        const maxZ = values.length > 0 ? Math.max(...values) : 50;
+        if (currentZIndices[widgetId] === maxZ && maxZ > 50) {
+          return state;
+        }
+        return {
+          widgetZIndices: {
+            ...currentZIndices,
+            [widgetId]: maxZ + 1
+          }
+        };
+      }),
       resetAllOffsets: (bgSrc) => set((state) => {
         const newClockOffsets = { ...state.clockOffsets };
         delete newClockOffsets[bgSrc];
@@ -1101,16 +1122,21 @@ export const useDashboardStore = create<DashboardState>()(
       rightWidgetsOffset: 48, // Default corresponds to bottom-12 (48px)
       setRightWidgetsOffset: (offset) => set({ rightWidgetsOffset: Math.max(0, offset) }),
 
+      dismissedBroadcasts: [],
+      dismissBroadcast: (id) => set((state) => {
+        if (!state.dismissedBroadcasts.includes(id)) {
+          return { dismissedBroadcasts: [...state.dismissedBroadcasts, id] };
+        }
+        return state;
+      }),
+
       clearOldData: async (days: number) => {
         try {
           const token = getSyncToken();
           const headers: Record<string, string> = { 'Content-Type': 'application/json' };
           if (token) headers['Authorization'] = `Bearer ${token}`;
 
-          await fetch(`${apiUrl}/api/health?action=olderThan&days=${days}`, { 
-            method: 'DELETE',
-            headers 
-          });
+          await fetch(`/api/health?action=olderThan&days=${days}`, { method: 'DELETE', headers });
           
           set((state) => {
             const newHistory = { ...state.history };
@@ -1145,13 +1171,10 @@ export const useDashboardStore = create<DashboardState>()(
           const headers: Record<string, string> = { 'Content-Type': 'application/json' };
           if (token) headers['Authorization'] = `Bearer ${token}`;
 
-          await fetch(`${apiUrl}/api/health?action=deleteAll`, { 
-            method: 'DELETE',
-            headers
-          });
-          await fetch(`${apiUrl}/api/store`, {
+          await fetch(`/api/health?action=deleteAll`, { method: 'DELETE', headers });
+          await fetch('/api/store', {
             method: 'POST',
-            headers,
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ data: null })
           });
           localStorage.removeItem('dashboard-storage');
@@ -1187,7 +1210,8 @@ export const useDashboardStore = create<DashboardState>()(
         Object.entries(state).filter(([key]) => ![
           'isQuotePopupOpen', 'isTaskManagerOpen', 'isStatsOpen', 'timerTrigger', 
           'isNotesOpen', 'isPlansOpen', 'isTimetableOpen', 'isHealthModalOpen', 'healthData',
-          'isVideoMuted', 'isVideoPlaying', 'isSettingsOpen', 'isStopwatchOpen', '_hasHydrated'
+          'isVideoMuted', 'isVideoPlaying', 'isSettingsOpen', 'isStopwatchOpen', '_hasHydrated',
+          'widgetZIndices'
         ].includes(key))
       ),
       merge: (persistedState: any, currentState: DashboardState) => {

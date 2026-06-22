@@ -19,8 +19,7 @@ export default function GlobalBroadcastPopup() {
   useEffect(() => {
     const fetchLatestBroadcast = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-        const res = await fetch(`${apiUrl}/api/broadcasts`);
+        const res = await fetch(`/api/broadcasts`);
         const data = await res.json();
         
         if (res.ok && data.broadcasts && data.broadcasts.length > 0) {

@@ -22,6 +22,7 @@ import DeadlineAlerts from "@/components/DeadlineAlerts";
 import StartupUpdateChecker from "@/components/StartupUpdateChecker";
 import FriendRequestPopup from "@/components/FriendRequestPopup";
 import GlobalBroadcastPopup from "@/components/GlobalBroadcastPopup";
+import VideoBackground from "@/components/VideoBackground";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, CalendarDays, Settings } from "lucide-react";
 import { useDashboardStore, hasUnsavedChanges } from "@/store/dashboardStore";
@@ -37,6 +38,7 @@ export default function Dashboard() {
   const [isCountdownsExpanded, setIsCountdownsExpanded] = useState(false);
   const isTimetableOpen = useDashboardStore((state) => state.isTimetableOpen);
   const setIsTimetableOpen = useDashboardStore((state) => state.setIsTimetableOpen);
+  const isCalendarOpen = useDashboardStore((state) => state.isCalendarOpen);
 
   const showHealth = useDashboardStore((state) => state.showHealth);
   const showQuote = useDashboardStore((state) => state.showQuote);
@@ -44,6 +46,7 @@ export default function Dashboard() {
   const showStopwatch = useDashboardStore((state) => state.showStopwatch);
   const showCountdowns = useDashboardStore((state) => state.showCountdowns);
   const showClock = useDashboardStore((state) => state.showClock);
+  const showTodayWork = useDashboardStore((state) => state.showTodayWork);
   const showTasks = useDashboardStore((state) => state.showTasks);
   const showCalendar = useDashboardStore((state) => state.showCalendar);
   const showStats = useDashboardStore((state) => state.showStats);
@@ -52,12 +55,12 @@ export default function Dashboard() {
   const showTimetable = useDashboardStore((state) => state.showTimetable);
   const showDock = useDashboardStore((state) => state.showDock);
   const showDeadlineAlerts = useDashboardStore((state) => state.showDeadlineAlerts);
-  const showBgSwitcher = useDashboardStore((state) => state.showBgSwitcher);
   const showSettingsBtn = useDashboardStore((state) => state.showSettingsBtn);
   const rightWidgetsOffset = useDashboardStore((state) => state.rightWidgetsOffset);
-  const cycleBackground = useDashboardStore((state) => state.cycleBackground);
   const toggleSettings = useDashboardStore((state) => state.toggleSettings);
   const _hasHydrated = useDashboardStore((state) => state._hasHydrated);
+  const widgetZIndices = useDashboardStore((state) => state.widgetZIndices) || {};
+  const bringToFront = useDashboardStore((state) => state.bringToFront);
 
   const isPanicHidden = useDashboardStore((state) => state.isPanicHidden);
   const togglePanicHide = useDashboardStore((state) => state.togglePanicHide);
@@ -66,10 +69,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-      // Legacy normalization for old saves
       let fKey = focusShortcutKey;
       if (!fKey.includes('+') && fKey.length === 1) fKey = 'ctrl+' + fKey;
       let pKey = panicShortcutKey;
@@ -84,13 +85,11 @@ export default function Dashboard() {
         return ev.ctrlKey === ctrl && ev.altKey === alt && ev.shiftKey === shift && ev.key.toLowerCase() === key;
       };
 
-      // Focus Mode Shortcut
       if (checkShortcut(e, fKey)) {
         e.preventDefault();
         toggleHide();
       }
 
-      // Panic Mode Shortcut
       if (checkShortcut(e, pKey)) {
         e.preventDefault();
         togglePanicHide();
@@ -101,13 +100,11 @@ export default function Dashboard() {
   }, [toggleHide, isHidden, hideConfig, togglePanicHide, isPanicHidden, panicShortcutKey, focusShortcutKey]);
 
   useEffect(() => {
-    // Show initial quote after 5 seconds of loading the dashboard
     const initialTimer = setTimeout(async () => {
       const q = await fetchQuote();
       showQuotePopup(q);
     }, 5000);
 
-    // Then show a new quote every 30 minutes
     const interval = setInterval(async () => {
       const q = await fetchQuote();
       showQuotePopup(q);
@@ -119,35 +116,11 @@ export default function Dashboard() {
     };
   }, [showQuotePopup]);
 
-
-
   useEffect(() => {
-    // Attempt to recover session for Lively Wallpaper (which wipes localStorage on reboot)
-    const recoverSession = async () => {
-      try {
-        const token = localStorage.getItem('dashboard_sync_token');
-        if (!token) {
-          const res = await fetch('/api/session', { cache: 'no-store' });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.token && data.username) {
-              localStorage.setItem('dashboard_sync_token', data.token);
-              localStorage.setItem('dashboard_username', data.username);
-              // Force reload so Zustand boots up with the recovered token
-              window.location.reload();
-            }
-          } else if (res.status >= 500 || !res.ok) {
-            // If the server is down (e.g. MongoDB not started yet), retry in 3 seconds
-            setTimeout(recoverSession, 3000);
-          }
-        }
-      } catch (err) {
-        console.error('Session recovery failed:', err);
-        // Retry on network failure (MongoDB down)
-        setTimeout(recoverSession, 3000);
-      }
-    };
-    recoverSession();
+    const token = localStorage.getItem('dashboard_sync_token');
+    if (!token || token === 'null') {
+      window.location.href = '/';
+    }
   }, []);
 
   if (!_hasHydrated) {
@@ -159,12 +132,18 @@ export default function Dashboard() {
     );
   }
 
+  const tasksZ = widgetZIndices.tasks || 50;
+  const stopwatchZ = widgetZIndices.stopwatch || 50;
+  const timerZ = widgetZIndices.timer || 50;
+  const toolbarZ = widgetZIndices.toolbar || 50;
+  const bottomRightZ = Math.max(tasksZ, stopwatchZ, timerZ, toolbarZ);
+
   return (
     <main className="relative overflow-hidden w-full flex-1">
+      <VideoBackground />
       {(!isHidden || !hideConfig.deadlineAlerts) && showDeadlineAlerts && <DeadlineAlerts />}
       {!isPanicHidden && (
         <>
-          {(!isHidden || !hideConfig.deadlineAlerts) && showDeadlineAlerts && <DeadlineAlerts />}
           {/* Quote Popup */}
           {(!isHidden || !hideConfig.quote) && showQuote && <QuotePopup />}
 
@@ -180,26 +159,12 @@ export default function Dashboard() {
           {/* Roadmap & Plans */}
           {(!isHidden || !hideConfig.plans) && showPlans && <PlansManager />}
 
-          {/* Top Left: Background Switcher */}
-          {(!isHidden || !hideConfig.bgSwitcher) && showBgSwitcher && (
-          <div className="absolute top-6 left-4 z-50">
-            <button
-              onClick={cycleBackground}
-              className="group flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-white/20 hover:shadow-2xl"
-              title="Switch Background"
-            >
-              <svg className="w-5 h-5 transition-transform duration-300 group-hover:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-            </button>
-          </div>
-          )}
-
           {/* Top Leftish: Target Countdowns */}
           {(!isHidden || !hideConfig.countdowns) && showCountdowns && (
-            <div className="absolute top-32 right-[320px] z-50">
+            <div 
+              style={{ zIndex: widgetZIndices.countdowns || 50 }}
+              className="absolute top-48 left-2 md:top-32 md:left-auto md:right-[320px] scale-[0.8] sm:scale-85 md:scale-100 origin-top-left md:origin-top pointer-events-none"
+            >
               <DraggableWidget id="countdowns">
                 <div className="flex flex-col gap-4 items-center">
                   {countdowns.length > 0 && (
@@ -217,10 +182,10 @@ export default function Dashboard() {
                       e.stopPropagation();
                       setIsCountdownsExpanded(!isCountdownsExpanded);
                     }}
-                    className="flex items-center justify-center p-1.5 text-white/40 hover:text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/10"
+                    className="flex items-center justify-center p-2 text-white/40 hover:text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full transition-all border border-white/10"
                     title={isCountdownsExpanded ? "Hide extra targets" : "Show all targets"}
                   >
-                    {isCountdownsExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                    {isCountdownsExpanded ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
                   </button>
                 </div>
               </DraggableWidget>
@@ -228,79 +193,95 @@ export default function Dashboard() {
           )}
 
           {/* Top Right: Mini Calendar */}
-          {(!isHidden || !hideConfig.calendar) && showCalendar && (
-            <div className="absolute top-4 right-4 z-50">
+          {(!isHidden || !hideConfig.calendar) && showCalendar && isCalendarOpen && (
+            <div 
+              style={{ zIndex: widgetZIndices.calendar || 50 }}
+              className="absolute top-48 right-2 md:top-4 md:right-4 scale-[0.8] sm:scale-85 md:scale-100 origin-top-right pointer-events-none"
+            >
               <MiniCalendar />
             </div>
           )}
 
           {/* BigClock */}
-          {(!isHidden || !hideConfig.clock) && showClock && (
-          <div className={`absolute z-[999] pointer-events-none transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${
-            isTimetableOpen 
-              ? 'top-1/2 left-20 -translate-y-1/2 translate-x-0' 
-              : currentBgType === 'image' 
-                ? 'top-40 left-1/2 -translate-x-1/2 translate-y-0' 
-                : 'top-40 left-10 translate-x-0 translate-y-0'
-          }`}>
-            <DraggableClock>
-              <BigClock />
-            </DraggableClock>
-          </div>
+          {(!isHidden || !hideConfig.clock) && (showClock || showTodayWork) && (
+            <div 
+              style={{ zIndex: widgetZIndices.clock || 50 }}
+              className={`absolute pointer-events-none transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isTimetableOpen
+                ? 'top-20 left-1/2 -translate-x-1/2 md:top-1/2 md:left-20 md:-translate-y-1/2 md:translate-x-0 scale-[0.7] md:scale-100 origin-top md:origin-center'
+                : currentBgType === 'image'
+                  ? 'top-20 left-1/2 -translate-x-1/2 translate-y-0 scale-[0.7] md:scale-100 md:top-40 origin-top'
+                  : 'top-20 left-1/2 -translate-x-1/2 md:top-40 md:left-10 md:translate-x-0 translate-y-0 scale-[0.7] md:scale-100 origin-top md:origin-top-left'
+              }`}>
+              <DraggableClock>
+                <BigClock />
+              </DraggableClock>
+            </div>
           )}
 
           {/* Bottom Center (Above Dock): Timetable */}
           {(!isHidden || !hideConfig.timetable) && showTimetable && (
-          <div className="absolute bottom-40 left-1/2 -translate-x-1/2 z-[50] flex flex-col items-center">
-            {/* The Expanded Timetable */}
-            <div className={`flex flex-col items-center gap-2 absolute bottom-0 origin-bottom transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isTimetableOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : 'opacity-0 translate-y-12 scale-90 pointer-events-none'}`}>
-              <Timetable />
-              <button
-                onClick={() => setIsTimetableOpen(false)}
-                className="bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-2 py-2 text-white/60 hover:text-white hover:bg-black/60 transition-colors flex items-center gap-2 shadow-xl"
+            <div 
+              style={{ zIndex: widgetZIndices.timetable || 50 }}
+              className="absolute bottom-24 left-[10px] right-[10px] w-[calc(100vw-20px)] md:bottom-40 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-auto flex flex-col items-center scale-[0.9] md:scale-100 origin-bottom pointer-events-none"
+            >
+              {/* The Expanded Timetable */}
+              <div 
+                onPointerDown={() => bringToFront('timetable')}
+                className={`flex flex-col items-center gap-2 absolute bottom-0 origin-bottom transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] w-full md:w-auto ${isTimetableOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : 'opacity-0 translate-y-12 scale-90 pointer-events-none'}`}
               >
-                <ChevronDown size={16} />
-              </button>
-            </div>
+                <Timetable />
+                <button
+                  onClick={() => setIsTimetableOpen(false)}
+                  className="bg-black/40 backdrop-blur-md border border-white/10 rounded-full px-3 py-3 text-white/60 hover:text-white hover:bg-black/60 transition-colors flex items-center gap-2 shadow-xl"
+                >
+                  <ChevronDown size={18} />
+                </button>
+              </div>
 
-            {/* The Closed Button */}
-            <div className={`absolute bottom-0 origin-bottom transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${!isTimetableOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto delay-300' : 'opacity-0 translate-y-8 scale-50 pointer-events-none'}`}>
-              <button
-                onClick={() => setIsTimetableOpen(true)}
-                className="bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-2 py-2 text-white/80 hover:text-white hover:bg-black/40 transition-colors flex items-center gap-2 shadow-xl hover:scale-105"
+              {/* The Closed Button */}
+              <div 
+                onPointerDown={() => bringToFront('timetable')}
+                className={`absolute bottom-0 origin-bottom transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${!isTimetableOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto delay-300' : 'opacity-0 translate-y-8 scale-50 pointer-events-none'}`}
               >
-                <CalendarDays size={18} className="text-purple-400" />
-              </button>
+                <button
+                  onClick={() => setIsTimetableOpen(true)}
+                  className="bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-3 py-3 text-white/80 hover:text-white hover:bg-black/40 transition-colors flex items-center gap-2 shadow-xl hover:scale-105"
+                >
+                  <CalendarDays size={20} className="text-purple-400" />
+                </button>
+              </div>
             </div>
-          </div>
           )}
 
           {/* Bottom Center: Dock */}
           {(!isHidden || !hideConfig.dock) && showDock && (
-          <div className="absolute bottom-18 left-1/2 -translate-x-1/2 z-50">
-            <Dock onOpenNotes={() => console.log('Open Notes clicked')} />
-          </div>
+            <div className="absolute bottom-2 md:bottom-18 left-1/2 -translate-x-1/2 z-50 scale-[0.85] md:scale-100 origin-bottom">
+              <Dock onOpenNotes={() => console.log('Open Notes clicked')} />
+            </div>
           )}
 
           {/* Bottom Left: Health Rings */}
           {(!isHidden || !hideConfig.health) && showHealth && (
-            <div className="absolute bottom-12 left-12 z-50">
+            <div className="absolute bottom-28 left-0 md:bottom-12 md:left-12 z-50 scale-[0.65] md:scale-100 origin-bottom-left">
               <HealthRings />
             </div>
           )}
 
           {/* Bottom Right Container */}
-          <div className="absolute right-2 z-50 flex items-end transition-all duration-300 pointer-events-none" style={{ bottom: `${rightWidgetsOffset}px` }}>
+          <div 
+            style={{ bottom: `${rightWidgetsOffset}px`, zIndex: bottomRightZ }}
+            className="absolute right-1 sm:right-2 md:right-2 flex items-end transition-all duration-300 pointer-events-none scale-[0.75] sm:scale-85 md:scale-100 origin-bottom-right"
+          >
             {/* TaskManager & Timer Group */}
-            <div className="flex flex-col items-end gap-2 pointer-events-none mr-[10px]">
+            <div className="flex flex-col items-end gap-2 pointer-events-none mr-1 md:mr-[10px]">
               {(!isHidden || !hideConfig.tasks) && showTasks && <TaskManager />}
-              <div className="flex flex-row items-start gap-3 pointer-events-none">
+              <div className="flex flex-col md:flex-row items-end md:items-start gap-2 md:gap-3 pointer-events-none">
                 {(!isHidden || !hideConfig.stopwatch) && showStopwatch && <Stopwatch />}
                 {(!isHidden || !hideConfig.timer) && showTimer && <Timer />}
               </div>
             </div>
-            
-            {/* Vertical Icons Toolbar */}
+
+            {/* Vertical Icons Toolbar (Side toggle btns scale with container) */}
             <div className="pointer-events-none">
               <RightToolbar />
             </div>
@@ -311,7 +292,7 @@ export default function Dashboard() {
       {/* Settings Modal */}
       <SettingsModal />
 
-      {/* Auto Update Checker (Runs silently on boot) */}
+      {/* Auto Update Checker */}
       <StartupUpdateChecker />
 
       {/* Global Friend Request Notification */}
